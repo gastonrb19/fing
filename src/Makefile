@@ -3,11 +3,14 @@
 
 BASE_URL ?= http://localhost:8000
 CURL = curl -s -w "\n[HTTP %{http_code}]\n"
+CURLJ = curl -s -w "\n[HTTP %{http_code}]\n" -H "Content-Type: application/json"
 
 .DEFAULT_GOAL := list
-.PHONY: list users user \
+.PHONY: list users user create update \
         users-1 users-2 users-3 \
-        user-1 user-2 user-3
+        user-1 user-2 user-3 \
+        create-1 create-2 create-3 \
+        update-1 update-2 update-3
 
 ## list: muestra los endpoints disponibles y su estructura de llamada
 list:
@@ -25,8 +28,21 @@ list:
 	@echo "     ejemplo: $(BASE_URL)/users/1"
 	@echo "     escenarios: make user-1 | make user-2 | make user-3"
 	@echo ""
-	@echo "Extras:  make users  (corre los 3 escenarios de findAll)"
-	@echo "         make user   (corre los 3 escenarios de findOne)"
+	@echo "POST /users            -> create (crea usuario, body = DTO en JSON)"
+	@echo "     body:   { username, email, hashedPassword, phone }"
+	@echo "     ejemplo: $(BASE_URL)/users"
+	@echo "     escenarios: make create-1 | make create-2 | make create-3"
+	@echo ""
+	@echo "PUT  /users/:id        -> update (actualiza usuario, body envuelto en 'user')"
+	@echo "     param:  id (number)"
+	@echo "     body:   { \"user\": { username?, email?, password?, phone? } }"
+	@echo "     ejemplo: $(BASE_URL)/users/1"
+	@echo "     escenarios: make update-1 | make update-2 | make update-3"
+	@echo ""
+	@echo "Extras:  make users   (corre los 3 escenarios de findAll)"
+	@echo "         make user    (corre los 3 escenarios de findOne)"
+	@echo "         make create  (corre los 3 escenarios de create)"
+	@echo "         make update  (corre los 3 escenarios de update)"
 	@echo ""
 
 # ---------------------------------------------------------------------------
@@ -72,3 +88,53 @@ user-3:
 
 ## user: corre los 3 escenarios de findOne
 user: user-1 user-2 user-3
+
+# ---------------------------------------------------------------------------
+# POST /users  -> create  (3 escenarios con distinto body)
+# ---------------------------------------------------------------------------
+
+## create-1: usuario valido completo
+create-1:
+	@echo ">> POST /users  (usuario valido completo)"
+	@$(CURLJ) -X POST "$(BASE_URL)/users" \
+		-d '{"username":"jdoe","email":"jdoe@mail.com","hashedPassword":"secret123","phone":"+56911111111"}'
+
+## create-2: otro usuario valido
+create-2:
+	@echo ">> POST /users  (otro usuario valido)"
+	@$(CURLJ) -X POST "$(BASE_URL)/users" \
+		-d '{"username":"asmith","email":"asmith@mail.com","hashedPassword":"pass456","phone":"+56922222222"}'
+
+## create-3: sin password (probable 400 GeneralError)
+create-3:
+	@echo ">> POST /users  (sin password, probable 400)"
+	@$(CURLJ) -X POST "$(BASE_URL)/users" \
+		-d '{"username":"nopass","email":"nopass@mail.com","phone":"+56933333333"}'
+
+## create: corre los 3 escenarios de create
+create: create-1 create-2 create-3
+
+# ---------------------------------------------------------------------------
+# PUT /users/:id  -> update  (3 escenarios; body envuelto en "user")
+# ---------------------------------------------------------------------------
+
+## update-1: actualiza varios campos del usuario id=1
+update-1:
+	@echo ">> PUT /users/1  (actualiza varios campos)"
+	@$(CURLJ) -X PUT "$(BASE_URL)/users/1" \
+		-d '{"user":{"username":"jdoe_edit","email":"jdoe_edit@mail.com","phone":"+56900000000"}}'
+
+## update-2: actualiza solo el email del usuario id=2
+update-2:
+	@echo ">> PUT /users/2  (actualiza solo email)"
+	@$(CURLJ) -X PUT "$(BASE_URL)/users/2" \
+		-d '{"user":{"email":"nuevo@mail.com"}}'
+
+## update-3: sin wrapper "user" (probable 400 Bad request)
+update-3:
+	@echo ">> PUT /users/1  (sin wrapper user, probable 400)"
+	@$(CURLJ) -X PUT "$(BASE_URL)/users/1" \
+		-d '{"email":"sinwrapper@mail.com"}'
+
+## update: corre los 3 escenarios de update
+update: update-1 update-2 update-3
