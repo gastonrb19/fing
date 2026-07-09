@@ -32,18 +32,12 @@ export class CategoryService {
 
     async update(id: number, updateCategoryDTO: updateCategoryDTO) : Promise<CategoryEntity> {
         const category = await this.findOneById(id);
-        if(!category){
-            throw new NotFoundError('Category', id);
-        }
         Object.assign(category, updateCategoryDTO);
         return await myDataSource.getRepository(CategoryEntity).save(category);
     }
 
     async delete(id: number): Promise<void> {
         const category = await this.findOneById(id);
-        if(!category){
-            throw new NotFoundError('Category', id);
-        }
         await myDataSource.getRepository(CategoryEntity).remove(category);
     }
 }

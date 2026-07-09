@@ -1,4 +1,5 @@
-import {Entity, Column, PrimaryGeneratedColumn} from "typeorm";
+import {Entity, Column, OneToMany, PrimaryGeneratedColumn} from "typeorm";
+import { SpendEntity } from "./SpendEntity.js";
 
 @Entity()
 export class User {
@@ -16,4 +17,7 @@ export class User {
 
 	@Column({type: "varchar", nullable: true, unique: true})
 	phone: string;
+
+	@OneToMany(() => SpendEntity, (spend) => spend.user)
+	spends: SpendEntity[];
 }

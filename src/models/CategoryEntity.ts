@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { SubcategoryEntity } from "./SubcategoryEntity.js";
 
 
 @Entity()
@@ -11,4 +12,7 @@ export class CategoryEntity {
 
     @Column({ type: "varchar", nullable: true })
     description: string;
+
+    @OneToMany(() => SubcategoryEntity, (subcategory) => subcategory.category)
+    subcategories: SubcategoryEntity[];
 }

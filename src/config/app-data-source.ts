@@ -8,6 +8,8 @@ export const myDataSource = new DataSource({
 	password: process.env.DB_PASS || "postgres",
 	database: process.env.DB_NAME || "fing",
 	entities: [import.meta.dirname + "/../models/**/*{.js,.ts}"],
+	migrations: [import.meta.dirname + "/../migrations/**/*{.js,.ts}"],
+	migrationsTableName: "migrations",
 	logging: true,
 	synchronize: true,
 });
