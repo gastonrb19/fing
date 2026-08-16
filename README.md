@@ -1,249 +1,74 @@
-# Proyecto Fing
+# Fing - Arquitectura y Hoja de Ruta del Backend
 
-**API de seguimiento de gastos.**
+Este documento detalla la estructura, flujo y evolución del **Backend Core** del proyecto "Fing". Está diseñado con diagramas de texto plano (ASCII/Unicode) para asegurar una visualización perfecta en cualquier editor o visor de Markdown.
 
-Fing es una API para llevar el control de en qué se te va la plata. La idea es simple: cada usuario registra sus gastos (*spends*), y cada gasto cuelga de una subcategoría, que a su vez pertenece a una categoría. Así puedes responder preguntas como "¿cuánto gasté este mes en delivery?" sin tener que hacer memoria.
-
-Debajo del capó hay una estructura bien ordenada y repetible: cada entidad tiene su modelo, sus DTOs, su servicio, su controlador y sus rutas. Los servicios se apoyan entre sí (por ejemplo, `Spend` reutiliza `UserService` y `SubcategoryService` en vez de tocar sus repositorios directamente), y los errores se traducen a respuestas JSON consistentes en un solo lugar.
-
----
-
-## Stack
-
-- **Node.js + Express 5** — servidor HTTP
-- **TypeScript** — tipado estricto
-- **TypeORM** — ORM y migraciones
-- **PostgreSQL** — base de datos
-- **tsx** — ejecución/watch en desarrollo
+## 🛠️ Stack Tecnológico del Backend
+*   **Entorno de ejecución:** Node.js v20+ con TypeScript.
+*   **Framework Web:** Express.js para la API REST y endpoints de Webhooks.
+*   **ORM (Acceso a Datos):** TypeORM para gestionar esquemas, migraciones y consultas a PostgreSQL de forma segura.
+*   **Bases de Datos:**
+    *   **PostgreSQL (GCP Cloud SQL):** Persistencia de transacciones, cuentas, categorías y usuarios.
+    *   **Redis (GCP Memorystore):** Gestión de sesiones temporales del bot (TTL) y estados conversacionales.
+*   **IA e Integraciones:**
+    *   **Gemini 1.5 Flash (Vertex AI):** Procesamiento multimodal de imágenes (OCR) y categorización automática.
+    *   **WhatsApp Cloud API:** Endpoint de Webhook para recibir/enviar mensajes a los usuarios.
 
 ---
 
-## Puesta en marcha
+## 🗺️ Hoja de Ruta de Desarrollo - Backend
 
-Levantar la base de datos (Postgres en Docker):
+La evolución del servidor está dividida en las siguientes etapas críticas:
 
-```bash
-docker compose up -d
+```
+┌──────────────┐      ┌──────────────┐      ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
+│  v0.5: Base  ├─────>│  v1.5: VPC   ├─────>│ v2.0: Webhook├─────>│ v2.5: Redis  ├─────>│ v3.0: Gemini │
+│ API/Postgres │      │  Seguridad   │      │ WhatsApp API │      │  y MCP Temp  │      │  Multimodal  │
+└──────────────┘      └──────────────┘      └──────────────┘      └──────────────┘      └──────────────┘
 ```
 
-Instalar dependencias y correr en modo desarrollo:
-
-```bash
-npm install
-npm run dev
-```
-
-La API queda escuchando en `http://localhost:8000`.
-
-Scripts disponibles:
-
-| Script | Qué hace |
-|---|---|
-| `npm run dev` | Levanta el server con recarga en caliente (`tsx watch`) |
-| `npm start` | Levanta el server una vez |
-| `npm run build` | Compila TypeScript a `dist/` |
-| `npm run typecheck` | Chequeo de tipos sin emitir archivos |
-
-### Variables de entorno
-
-Se leen desde `.env` (con estos valores por defecto):
-
-| Variable | Default |
-|---|---|
-| `DB_HOST` | `localhost` |
-| `DB_PORT` | `5432` |
-| `DB_USER` | `postgres` |
-| `DB_PASS` | `postgres` |
-| `DB_NAME` | `fing` |
-| `PORT` | `8000` |
-
-> Actualmente el datasource usa `synchronize: true`, así que las tablas se crean solas al arrancar. Las migraciones ya están escritas en `src/migrations`; para usarlas en producción cambia a `synchronize: false` y córrelas con `migrationsRun` o el CLI de TypeORM.
+1.  **v0.5 (Base de Datos & API):** Configuración de Express, TypeORM y conexión inicial con PostgreSQL en la nube (Cloud SQL).
+2.  **v1.5 (Aislamiento de Red):** Migración a conexiones internas mediante GCP Direct VPC Egress, cerrando todas las IPs públicas de las bases de datos para máxima seguridad.
+3.  **v2.0 (Integración WhatsApp):** Implementación de la verificación del token de Meta y controlador (Controller) para procesar mensajes entrantes (Webhooks).
+4.  **v2.5 (Gestión de Estado):** Conexión con Redis para almacenar el estado de la sesión (`ESPERANDO_CONFIRMACION`) y uso de TTL (Time-To-Live). Configuración inicial de servidores MCP.
+5.  **v3.0 (Canal Inteligente Multimodal):** Integración del SDK de Gemini 1.5 Flash para extraer estructuradamente la información de los comprobantes y gatillar el flujo conversacional.
 
 ---
 
-## Forma de las respuestas
+## 🔄 Flujo de Datos Interno del Backend (v3.0)
 
-Todas las respuestas siguen el mismo formato.
+El siguiente flujo ilustra el ciclo de vida de una petición en el backend cuando se registra un gasto vía WhatsApp:
 
-Éxito:
-
-```json
-{
-  "success": true,
-  "code_message": "ABC",
-  "len": 1,
-  "data": { }
-}
 ```
-
-Error (traducido por el middleware `errorHandler`):
-
-```json
-{
-  "success": false,
-  "error": { "message": "Resource ...", "code": "NOT_FOUND" }
-}
+                      ┌──────────────────────────────────────────────┐
+                      │    1. WhatsApp Cloud API (Evento Webhook)    │
+                      └──────────────────────┬───────────────────────┘
+                                             │ (Mensaje con Imagen)
+                                             ▼
+                      ┌──────────────────────────────────────────────┐
+                      │          2. Controlador de Express           │
+                      │  - Verifica firma y descarga archivo JPG     │
+                      └──────────────────────┬───────────────────────┘
+                                             │
+                      ┌──────────────────────▼───────────────────────┐
+                      │             3. Gestor de Contexto            │
+                      │  - Consulta categorías del usuario en DB     │
+                      │  - Construye JSON Schema dinámico para la IA │
+                      └──────────────────────┬───────────────────────┘
+                                             │
+                      ┌──────────────────────▼───────────────────────┐
+                      │          4. Conector de Gemini 1.5           │
+                      │  - Envía comprobante + JSON Schema           │
+                      │  - Recibe JSON estructurado con datos        │
+                      └──────────────────────┬───────────────────────┘
+                                             │
+                      ┌──────────────────────▼───────────────────────┐
+                      │           5. Controlador de Estado           │
+                      │  - Guarda datos en Redis (TTL = 5 min)       │
+                      │  - Envía mensaje de validación al usuario    │
+                      └──────────────────────────────────────────────┘
 ```
-
-Códigos de error frecuentes: `NOT_FOUND` (404), `SVR_ERR` (500), `VL_UNI` (400, viola un valor único), `NOT_FK` (400, la FK referenciada no existe).
 
 ---
 
-## Entidades
-
-### User (`user`)
-
-| Campo | Tipo | Nulable | Notas |
-|---|---|---|---|
-| `id` | number | No | PK autogenerada |
-| `username` | varchar | No | Único |
-| `email` | varchar | No | Único |
-| `hashedPassword` | varchar | No | Se guarda hasheado |
-| `phone` | varchar | Sí | Único |
-
-### Category (`category_entity`)
-
-| Campo | Tipo | Nulable | Notas |
-|---|---|---|---|
-| `id` | number | No | PK autogenerada |
-| `name` | varchar | No | Único |
-| `description` | varchar | Sí | |
-
-### Subcategory (`subcategory_entity`)
-
-| Campo | Tipo | Nulable | Notas |
-|---|---|---|---|
-| `id` | number | No | PK autogenerada |
-| `name` | varchar | No | Único |
-| `description` | varchar | Sí | |
-| `category` | FK → Category | No | `ManyToOne` (`categoryId`), `ON DELETE CASCADE` |
-
-### Spend (`spend_entity`)
-
-| Campo | Tipo | Nulable | Notas |
-|---|---|---|---|
-| `id` | number | No | PK autogenerada |
-| `name` | varchar | No | No es único |
-| `amount` | double precision | No | Monto del gasto |
-| `createDate` | timestamp | No | Automático (`@CreateDateColumn`) |
-| `updateDate` | timestamp | No | Automático (`@UpdateDateColumn`) |
-| `user` | FK → User | No | `ManyToOne` (`userId`), `ON DELETE CASCADE` |
-| `subcategory` | FK → Subcategory | No | `ManyToOne` (`subcategoryId`), `ON DELETE CASCADE` |
-
-**Relaciones de un vistazo:** `Category 1—N Subcategory 1—N Spend N—1 User`.
-
----
-
-## Endpoints
-
-Paginación: los `GET` de listado aceptan `?limit=<n>&offset=<n>` (por defecto `limit=10`, `offset=0`).
-
-### Users
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/users` | Lista usuarios (paginado) |
-| `GET` | `/users/:id` | Un usuario por id |
-| `POST` | `/users` | Crea usuario — body: `{ username, email, hashedPassword, phone }` |
-| `PUT` | `/users/:id` | Actualiza — body envuelto: `{ "user": { ... } }` |
-
-### Categories
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/categories` | Lista categorías (paginado) |
-| `GET` | `/categories/:id` | Una categoría por id |
-| `POST` | `/categories` | Crea — body: `{ name, description? }` |
-| `PUT` | `/categories/:id` | Actualiza — body envuelto: `{ "category": { ... } }` |
-| `DELETE` | `/categories/:id` | Elimina |
-
-### Subcategories
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/subcategories` | Lista subcategorías (paginado) |
-| `GET` | `/subcategories/:id` | Una subcategoría por id |
-| `GET` | `/categories/:categoryId/subcategories` | Subcategorías de una categoría específica |
-| `POST` | `/subcategories` | Crea — body: `{ name, description?, categoryId }` |
-| `PUT` | `/subcategories/:id` | Actualiza — body envuelto: `{ "subcategory": { ... } }` |
-| `DELETE` | `/subcategories/:id` | Elimina |
-
-### Spends
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/spends` | Lista gastos (paginado) |
-| `GET` | `/spends/:id` | Un gasto por id |
-| `GET` | `/users/:id_user/spends?subcategory=<id>` | Gastos de un usuario filtrados por subcategoría (el query `subcategory` es requerido) |
-| `POST` | `/spends` | Crea — body: `{ name, amount, userId, subcategoryId }` |
-| `PUT` | `/spends/:id` | Actualiza — body envuelto: `{ "spend": { ... } }` |
-| `DELETE` | `/spends/:id` | Elimina |
-
----
-
-## Probar todo con `make`
-
-En `src/Makefile` hay comandos listos para golpear cada endpoint con `curl`. Corre `make list` (o solo `make`) para ver el menú completo con ejemplos.
-
-Cada recurso trae 3 escenarios por operación (casos válidos + un caso de error tipo 404/400) y un agregador que los corre todos.
-
-### Users
-
-```bash
-make users        # GET /users (3 escenarios de paginación)
-make user         # GET /users/:id
-make create       # POST /users
-make update       # PUT /users/:id
-```
-
-### Categories
-
-```bash
-make categories   # GET /categories
-make category     # GET /categories/:id
-make cat-create   # POST /categories
-make cat-update   # PUT /categories/:id
-make cat-delete   # DELETE /categories/:id
-```
-
-### Subcategories
-
-```bash
-make subcategories # GET /subcategories
-make subcategory   # GET /subcategories/:id
-make sub-create    # POST /subcategories
-make sub-update    # PUT /subcategories/:id
-make sub-delete    # DELETE /subcategories/:id
-make cat-subs      # GET /categories/:categoryId/subcategories
-```
-
-### Spends
-
-```bash
-make spends        # GET /spends
-make spend         # GET /spends/:id
-make spend-create  # POST /spends
-make spend-update  # PUT /spends/:id
-make spend-delete  # DELETE /spends/:id
-make user-spends   # GET /users/:id_user/spends?subcategory=<id>
-```
-
-También puedes correr un escenario puntual, por ejemplo `make spend-create-1` o `make user-spends-3`. Si tu API no está en el puerto por defecto, pásale la URL: `make spends BASE_URL=http://localhost:3000`.
-
----
-
-## Estructura del proyecto
-
-```
-src/
-├── config/         # datasource y conexión a la BD
-├── controllers/    # capa HTTP (request/response)
-├── dtos/           # contratos de create/update por entidad
-├── middlewares/    # manejo centralizado de errores
-├── migrations/     # migraciones de TypeORM
-├── models/         # entidades de TypeORM
-├── routes/         # definición de rutas por entidad
-├── services/       # lógica de negocio y acceso a datos
-├── utils/          # paginación, errores, hashing, helpers
-└── Makefile        # atajos de curl para probar la API
-```
+## 📂 Repositorio de Código Fuente
+*   **Código Backend Core:** [github.com/gastonrb19/fing](https://github.com/gastonrb19/fing)
