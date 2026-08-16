@@ -1,1 +1,1 @@
-- [] Test husky WF.
+- [x] Test husky WF. (100%)
