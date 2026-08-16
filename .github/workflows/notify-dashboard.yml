@@ -1,0 +1,23 @@
+name: Notify dashboard
+
+# Avisa al repo FingApp para que redespliegue el dashboard cuando cambian las
+# tareas en este repo. Se limita a los archivos de tareas para no disparar en
+# cada push de código.
+on:
+  push:
+    branches: [development]
+    paths:
+      - "README-TASK.md"
+      - "README-HISTORYTASK.md"
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar deploy en FingApp
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DASHBOARD_DISPATCH_TOKEN }}
+          repository: gastonrb19/FingApp
+          event-type: tasks-updated
