@@ -2,14 +2,14 @@ import { Column, Entity, ManyToOne, OneToMany, PrimaryColumn } from "typeorm";
 import { SpendEntity } from "./SpendEntity.js";
 import { InstallmentUserPayment } from "./InstallmentUserPayment.js";
 
-@Entity()
+@Entity({name: 'PLANNEDINSTALLMENT'})
 export class PlannedInstallmentEntity {
     /* This fields is compose by concateneted:
         Spend-ID
         A counter of the planned rows associated to the SpendEntity
     */
-   @PrimaryColumn({primary: true})
-   idPI: string;
+   @PrimaryColumn({type: "varchar"})
+   idPI!: string;
 
    @Column({type: "double precision", nullable: false})
     amount: number;

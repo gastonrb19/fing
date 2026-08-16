@@ -3,7 +3,7 @@ import { CategoryEntity } from "./CategoryEntity.js";
 import { SpendEntity } from "./SpendEntity.js";
 
 
-@Entity()
+@Entity({name: 'SUBCATEGORY'})
 export class SubcategoryEntity {
     @PrimaryGeneratedColumn()
     id: number;

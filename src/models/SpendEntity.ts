@@ -14,7 +14,7 @@ import { TypeSpendEntity } from "./TypeSpendEntity.js";
 import { PlannedInstallmentEntity } from "./PlannedInstallmentEntity.js";
 
 
-@Entity()
+@Entity({name: 'SPEND'})
 export class SpendEntity {
     @PrimaryGeneratedColumn()
     id: number;

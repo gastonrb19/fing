@@ -2,7 +2,7 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { SpendEntity } from "./SpendEntity.js";
 
 
-@Entity()
+@Entity({name: 'TYPESPEND'})
 export class TypeSpendEntity {
     @PrimaryGeneratedColumn()
     id: number;

@@ -2,7 +2,7 @@ import { Column, Entity, ManyToOne, PrimaryColumn } from "typeorm";
 import { PlannedInstallmentEntity } from "./PlannedInstallmentEntity.js";
 import { User } from "./UserEntity.js";
 
-@Entity()
+@Entity({name: 'INSTALLMENTUSERPAYMENT'})
 export class InstallmentUserPayment {
     @PrimaryColumn({type: "uuid"})
     idPayment: string;

@@ -2,7 +2,7 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { SubcategoryEntity } from "./SubcategoryEntity.js";
 
 
-@Entity()
+@Entity({name: 'CATEGORY'})
 export class CategoryEntity {
     @PrimaryGeneratedColumn()
     id: number;
