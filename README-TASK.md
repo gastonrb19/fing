@@ -1,5 +1,8 @@
 # 📌 Tareas Backend (TODO)
 
+### 🧪 Prueba
+- [ ] Verificar disparo instantáneo del dashboard (repository_dispatch) (10%)
+
 ### 🏗️ Arquitectura Base
 - [ ] Crear clase `BaseController` y `BaseService` para estandarizar respuestas y manejo de errores.
 
