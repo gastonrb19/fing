@@ -4,11 +4,14 @@ import {
     Entity,
     JoinColumn,
     ManyToOne,
+    OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
 import { User } from "./UserEntity.js";
 import { SubcategoryEntity } from "./SubcategoryEntity.js";
+import { TypeSpendEntity } from "./TypeSpendEntity.js";
+import { PlannedInstallmentEntity } from "./PlannedInstallmentEntity.js";
 
 
 @Entity()
@@ -20,7 +23,19 @@ export class SpendEntity {
     name: string;
 
     @Column({ type: "double precision", nullable: false })
-    amount: number;
+    totalAmount: number;
+
+    @Column({type: "int", nullable: false})
+    minDayToPayment: number;
+
+    @Column({type: "int"})
+    maxDayToPayment: number;
+
+    @Column({type: "int"})
+    totalInstallment : number;
+
+    @Column({type: "date"})
+    startPayment: Date;
 
     @CreateDateColumn({ type: "timestamp" })
     createDate: Date;
@@ -35,4 +50,11 @@ export class SpendEntity {
     @ManyToOne(() => SubcategoryEntity, (subcategory) => subcategory.spends, { nullable: false, onDelete: "CASCADE" })
     @JoinColumn({ name: "subcategoryId" })
     subcategory: SubcategoryEntity;
+
+    @ManyToOne(() => TypeSpendEntity, (typeSpend) => typeSpend.spends, {nullable: false, onDelete: "CASCADE"})
+    @JoinColumn({name : "fkTypeSpend"})
+    type: TypeSpendEntity;
+
+    @OneToMany(() => PlannedInstallmentEntity, (pi) => pi.piId)
+    plannedInstallments: PlannedInstallmentEntity[];
 }

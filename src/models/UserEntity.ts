@@ -1,5 +1,6 @@
 import {Entity, Column, OneToMany, PrimaryGeneratedColumn} from "typeorm";
 import { SpendEntity } from "./SpendEntity.js";
+import { InstallmentUserPayment } from "./InstallmentUserPayment.js";
 
 @Entity()
 export class User {
@@ -19,5 +20,8 @@ export class User {
 	phone: string;
 
 	@OneToMany(() => SpendEntity, (spend) => spend.user)
-	spends: SpendEntity[];
+	spends : SpendEntity[];
+
+	@OneToMany(() => InstallmentUserPayment, (iup) => iup.user)	
+	installmentUserPayments: InstallmentUserPayment[];
 }

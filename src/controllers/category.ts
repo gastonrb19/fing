@@ -9,7 +9,6 @@ export class CategoryController {
     this.serviceCategory = serviceCategory;
   }
 
-
   findAll = dryFn(async (req: Request, res: Response, next: NextFunction) => {
     // Check values
     const { limit, offset } = checkAndConvertPagination({
