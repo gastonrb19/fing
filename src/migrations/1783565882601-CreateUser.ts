@@ -5,21 +5,21 @@ export class CreateUser1783565882601 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`
-            CREATE TABLE "user" (
+            CREATE TABLE "USERS" (
                 "id" SERIAL NOT NULL,
                 "username" character varying NOT NULL,
                 "email" character varying NOT NULL,
                 "hashedPassword" character varying NOT NULL,
                 "phone" character varying,
-                CONSTRAINT "UQ_user_username" UNIQUE ("username"),
-                CONSTRAINT "UQ_user_email" UNIQUE ("email"),
-                CONSTRAINT "UQ_user_phone" UNIQUE ("phone"),
-                CONSTRAINT "PK_user_id" PRIMARY KEY ("id")
+                CONSTRAINT "UQ_USERS_username" UNIQUE ("username"),
+                CONSTRAINT "UQ_USERS_email" UNIQUE ("email"),
+                CONSTRAINT "UQ_USERS_phone" UNIQUE ("phone"),
+                CONSTRAINT "PK_USERS_id" PRIMARY KEY ("id")
             )
         `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP TABLE "user"`);
+        await queryRunner.query(`DROP TABLE "USERS"`);
     }
 }

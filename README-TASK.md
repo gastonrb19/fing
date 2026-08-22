@@ -1,21 +1,27 @@
 # 📌 Tareas Backend (TODO)
 
 ### 🧪 Prueba
-- [ ] Verificar disparo instantáneo del dashboard (repository_dispatch) (10%)
 
 ### 🏗️ Arquitectura Base
-- [ ] Crear clase `BaseController` y `BaseService` para estandarizar respuestas y manejo de errores.
 
 ### 👥 Módulo: Usuarios (User)
-- [ ] Implementar `UserService`, `UserController` y rutas básicas (CRUD).
 
 ### 🏷️ Módulo: Categorías (Category)
-- [ ] Implementar `CategoryService`, `CategoryController` y rutas (CRUD).
 
 ### 💸 Módulo: Gastos (Gasto/Spending)
-- [ ] Implementar `GastoService` y `GastoController`.
-- [ ] Crear rutas de Gastos (`POST`, `GET`, `PUT`, `DELETE`).
 
 ### 💳 Módulo: Deudas (Debt)
-- [ ] Implementar `DebtService`, `DebtController` y rutas (CRUD).
-- [ ] **Lógica de Negocio (Trigger):** Implementar lógica en `GastoService` que detecte categoría 'Deuda' y cree automáticamente el registro correspondiente en la tabla/entidad `Debt`.
+
+# 📌 Tareas Proyecto (Pendientes para la próxima sesión)
+
+### 🖥️ Módulo Frontend: Integración
+- [ ] Actualizar interfaces TypeScript en fing-frontend (renombrar `totalAmount` a `amount` y adaptar DTOs).
+- [ ] Consumir APIs dinámicas de Categories, Subcategories y TypeSpends desde el `FormTransaction.tsx`.
+- [ ] Renderizar los errores de validación estructurados (Zod) provenientes del backend directo en los inputs.
+
+### 👤 Módulo Frontend: Pagos de Usuario
+- [ ] Implementar vista de Cuotas y Cobros Pendientes del Usuario (`GET /users/:userId/installmentuserpayments`).
+- [ ] Habilitar el botón y acción visual de "Pagar Cuota" conectándolo al Endpoint (`PUT /installmentuserpayments/:id`).
+
+### 📦 DevOps y Cierre
+- [ ] Levantar base de datos Dockerizada para correr y validar el entorno SQL con las migraciones actualizadas.

@@ -5,17 +5,17 @@ export class CreateCategory1783565882602 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`
-            CREATE TABLE "category_entity" (
+            CREATE TABLE "CATEGORY" (
                 "id" SERIAL NOT NULL,
                 "name" character varying NOT NULL,
                 "description" character varying,
-                CONSTRAINT "UQ_category_entity_name" UNIQUE ("name"),
-                CONSTRAINT "PK_category_entity_id" PRIMARY KEY ("id")
+                CONSTRAINT "UQ_CATEGORY_name" UNIQUE ("name"),
+                CONSTRAINT "PK_CATEGORY_id" PRIMARY KEY ("id")
             )
         `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP TABLE "category_entity"`);
+        await queryRunner.query(`DROP TABLE "CATEGORY"`);
     }
 }

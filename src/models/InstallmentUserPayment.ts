@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
 import { PlannedInstallmentEntity } from "./PlannedInstallmentEntity.js";
 import { User } from "./UserEntity.js";
 
@@ -17,8 +17,10 @@ export class InstallmentUserPayment {
     paymentDone: boolean;
 
     @ManyToOne(() => PlannedInstallmentEntity, (pi) => pi.fk_installmentUserPayment, {onDelete: "CASCADE", nullable: false})
+    @JoinColumn({ name: "plannedInstallmentId" })
     plannedInstallment: PlannedInstallmentEntity;
 
     @ManyToOne(() => User, (user) => user.installmentUserPayments)
+    @JoinColumn({ name: "userId" })
     user : User;
 }

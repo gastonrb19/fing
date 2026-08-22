@@ -1,0 +1,520 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Fing API",
+    "version": "1.0.0",
+    "description": "API REST para Fing, la plataforma omnicanal de finanzas personales. Permite el control y registro de gastos, ingresos, planificación de cuotas y pagos asociados a usuarios."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Servidor Local de Desarrollo"
+    }
+  ],
+  "paths": {
+    "/users": {
+      "post": {
+        "summary": "Crear un nuevo usuario",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuario creado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos o usuario duplicado"
+          }
+        }
+      },
+      "get": {
+        "summary": "Listar todos los usuarios",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 10 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de usuarios",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "summary": "Obtener detalles de un usuario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalles del usuario"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          }
+        }
+      },
+      "put": {
+        "summary": "Actualizar datos de un usuario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["user"],
+                "properties": {
+                  "user": {
+                    "$ref": "#/components/schemas/UpdateUserDTO"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario actualizado exitosamente"
+          }
+        }
+      }
+    },
+    "/categories": {
+      "post": {
+        "summary": "Crear una nueva categoría",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Categoría creada exitosamente"
+          }
+        }
+      },
+      "get": {
+        "summary": "Listar todas las categorías",
+        "responses": {
+          "200": {
+            "description": "Lista de categorías"
+          }
+        }
+      }
+    },
+    "/subcategories": {
+      "post": {
+        "summary": "Crear una nueva subcategoría",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubcategoryDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Subcategoría creada exitosamente"
+          }
+        }
+      },
+      "get": {
+        "summary": "Listar todas las subcategorías",
+        "responses": {
+          "200": {
+            "description": "Lista de subcategorías"
+          }
+        }
+      }
+    },
+    "/categories/{categoryId}/subcategories": {
+      "get": {
+        "summary": "Listar subcategorías asociadas a una categoría",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de subcategorías de la categoría especificada"
+          }
+        }
+      }
+    },
+    "/spends": {
+      "post": {
+        "summary": "Crear un nuevo gasto o ingreso",
+        "description": "Registra una cuenta (gasto/ingreso). **TRIGGER INTERNO:** Inmediatamente después de guardarse, el servicio calcula y genera las cuotas en `PLANNEDINSTALLMENT` dividiendo el monto total equitativamente. Para cada cuota, pre-genera una fila en `INSTALLMENTUSERPAYMENT` en estado pendiente (`paymentDone: false`) asignada al usuario creador del spend para que le aparezca como cobro.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSpendDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Spend registrado y cuotas/cargos pendientes generados en base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos o error en dependencias de BD (Usuario/Subcategoría no existen)"
+          }
+        }
+      },
+      "get": {
+        "summary": "Listar todos los gastos e ingresos",
+        "responses": {
+          "200": {
+            "description": "Lista general de spends"
+          }
+        }
+      }
+    },
+    "/spends/{id}": {
+      "get": {
+        "summary": "Obtener un gasto/ingreso por ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalles del spend"
+          }
+        }
+      },
+      "put": {
+        "summary": "Actualizar metadatos de un gasto/ingreso",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["spend"],
+                "properties": {
+                  "spend": {
+                    "$ref": "#/components/schemas/UpdateSpendDTO"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Spend actualizado"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar un gasto/ingreso y sus cascadas",
+        "description": "Elimina el spend y borra en cascada todas sus cuotas planificadas y cobros de usuarios asociados.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Spend eliminado con éxito"
+          }
+        }
+      }
+    },
+    "/users/{id_user}/spends": {
+      "get": {
+        "summary": "Obtener spends de un usuario filtrados por subcategoría",
+        "parameters": [
+          {
+            "name": "id_user",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "subcategory",
+            "in": "query",
+            "required": true,
+            "description": "ID de la subcategoría para filtrar",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Gastos/ingresos filtrados"
+          }
+        }
+      }
+    },
+    "/typespends": {
+      "get": {
+        "summary": "Listar los tipos de spends base",
+        "description": "Retorna los tipos registrados (como Gasto, Ingreso).",
+        "responses": {
+          "200": {
+            "description": "Lista de tipos"
+          }
+        }
+      }
+    },
+    "/plannedinstallments": {
+      "get": {
+        "summary": "Listar todas las cuotas planificadas del sistema",
+        "responses": {
+          "200": {
+            "description": "Lista de cuotas planificadas"
+          }
+        }
+      }
+    },
+    "/spends/{spendId}/plannedinstallments": {
+      "get": {
+        "summary": "Listar las cuotas específicas generadas por un gasto",
+        "parameters": [
+          {
+            "name": "spendId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de cuotas asociadas al spend"
+          }
+        }
+      }
+    },
+    "/users/{userId}/installmentuserpayments": {
+      "get": {
+        "summary": "Obtener los pagos/cargos de cuotas asignados a un usuario",
+        "description": "Permite al frontend listar los cobros de un usuario. Se puede filtrar por estado (pendiente/pagado).",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "done",
+            "in": "query",
+            "required": false,
+            "description": "true para pagados, false para pendientes",
+            "schema": { "type": "boolean" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de cobros del usuario"
+          }
+        }
+      }
+    },
+    "/installmentuserpayments/{idPayment}": {
+      "put": {
+        "summary": "Registrar o autorizar un pago de cuota",
+        "description": "Permite que el usuario marque un cargo como pagado ingresando el monto pagado, o que el administrador lo marque como aceptado.",
+        "parameters": [
+          {
+            "name": "idPayment",
+            "in": "path",
+            "required": true,
+            "description": "UUID identificador del pago",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["installmentUserPayment"],
+                "properties": {
+                  "installmentUserPayment": {
+                    "$ref": "#/components/schemas/UpdateInstallmentUserPaymentDTO"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado de pago actualizado"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateUserDTO": {
+        "type": "object",
+        "required": ["username", "email", "hashedPassword", "phone"],
+        "properties": {
+          "username": { "type": "string", "example": "gaston" },
+          "email": { "type": "string", "format": "email", "example": "gaston@test.com" },
+          "hashedPassword": { "type": "string", "example": "miPasswordSegura" },
+          "phone": { "type": "string", "example": "987654321" }
+        }
+      },
+      "UpdateUserDTO": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string", "example": "gaston" },
+          "email": { "type": "string", "format": "email", "example": "gaston.nuevo@test.com" },
+          "hashedPassword": { "type": "string", "example": "nuevaPassword" },
+          "phone": { "type": "string", "example": "987654321" }
+        }
+      },
+      "CreateCategoryDTO": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "example": "Servicios Básicos" },
+          "description": { "type": "string", "example": "Gastos obligatorios" }
+        }
+      },
+      "CreateSubcategoryDTO": {
+        "type": "object",
+        "required": ["name", "categoryId"],
+        "properties": {
+          "name": { "type": "string", "example": "Electricidad" },
+          "description": { "type": "string", "example": "Pago mensual del servicio eléctrico" },
+          "categoryId": { "type": "integer", "example": 1 }
+        }
+      },
+      "CreateSpendDTO": {
+        "type": "object",
+        "required": ["name", "amount", "userId", "subcategoryId", "minDayToPayment", "fkTypeSpend"],
+        "properties": {
+          "name": { "type": "string", "description": "Título del gasto o ingreso", "example": "Compra de Supermercado" },
+          "amount": { "type": "number", "description": "Monto total", "example": 30000 },
+          "userId": { "type": "integer", "description": "ID del usuario creador (debe existir)", "example": 1 },
+          "subcategoryId": { "type": "integer", "description": "ID de la subcategoría (debe existir)", "example": 1 },
+          "minDayToPayment": { "type": "integer", "description": "Día mínimo/inicio de pago del mes (1 a 31)", "example": 5 },
+          "maxDayToPayment": { "type": "integer", "description": "Día máximo/límite de pago (1 a 31)", "example": 10 },
+          "totalInstallment": { "type": "integer", "description": "Número total de cuotas", "example": 3 },
+          "startPayment": { "type": "string", "format": "date", "description": "Fecha inicial de pago", "example": "2026-08-01" },
+          "fkTypeSpend": { "type": "integer", "description": "ID del Tipo de Spend (1: Ingreso, 2: Gasto)", "example": 2 }
+        }
+      },
+      "UpdateSpendDTO": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "example": "Compra de Supermercado Modificada" },
+          "amount": { "type": "number", "example": 35000 },
+          "userId": { "type": "integer", "example": 1 },
+          "subcategoryId": { "type": "integer", "example": 1 },
+          "minDayToPayment": { "type": "integer", "example": 5 },
+          "maxDayToPayment": { "type": "integer", "example": 10 },
+          "totalInstallment": { "type": "integer", "example": 1 },
+          "startPayment": { "type": "string", "format": "date", "example": "2026-08-01" },
+          "fkTypeSpend": { "type": "integer", "example": 2 }
+        }
+      },
+      "UpdateInstallmentUserPaymentDTO": {
+        "type": "object",
+        "properties": {
+          "paymentDone": { "type": "boolean", "description": "Indica si el usuario completó el pago", "example": true },
+          "paidAmount": { "type": "number", "description": "Monto efectivamente pagado por el usuario", "example": 10000 },
+          "accepted": { "type": "boolean", "description": "Indica si el administrador aprobó/concilió la transacción", "example": false }
+        }
+      },
+      "StandardResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "code_message": { "type": "string", "example": "ABC" },
+          "len": { "type": "integer", "example": 1 },
+          "data": { "type": "object" }
+        }
+      }
+    }
+  }
+}

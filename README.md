@@ -70,5 +70,25 @@ El siguiente flujo ilustra el ciclo de vida de una petición en el backend cuand
 
 ---
 
+## 🔒 Validación, Documentación y Reglas de Negocio (Nuevo Flujo)
+
+### 1. Documentación Interactiva (OpenAPI / Swagger)
+El backend ahora expone su especificación técnica completa a través de **Swagger UI**.
+- **Acceso:** Levantando el servidor local y navegando a `http://localhost:8000/api-docs`.
+- **Características:** Describe todos los endpoints, esquemas de DTOs y permite pruebas en vivo con ejemplos predefinidos.
+
+### 2. Validación de Entradas (Zod)
+Se ha integrado el middleware global `validateBody(schema)` para garantizar la integridad de los datos.
+- Todo endpoint de creación (`POST`) o actualización (`PUT`) pasa por validación estricta de **Zod**.
+- Si la petición falla, arroja un `GeneralError` (400 Bad Request) que es procesado uniformemente por el manejador global de excepciones (`dryfn`).
+
+### 3. Flujo Transaccional de Gastos (Trigger Automático)
+Al registrar un gasto/ingreso en `POST /spends`, el sistema activa un trigger de software:
+1. Divide automáticamente el monto (`amount`) entre la cantidad de cuotas.
+2. Inserta secuencialmente las cuotas en **`PLANNEDINSTALLMENT`** ajustando las fechas con seguridad de zona horaria (UTC).
+3. Pre-crea en cascada los cobros pendientes en **`INSTALLMENTUSERPAYMENT`**, asignados directamente al usuario, listos para ser consultados y pagados.
+
+---
+
 ## 📂 Repositorio de Código Fuente
 *   **Código Backend Core:** [github.com/gastonrb19/fing](https://github.com/gastonrb19/fing)

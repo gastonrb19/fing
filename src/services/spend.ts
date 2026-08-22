@@ -1,11 +1,15 @@
 import { Pagination } from "../utils/pagination.js";
 import { SpendEntity } from "../models/SpendEntity.js";
+import { TypeSpendEntity } from "../models/TypeSpendEntity.js";
+import { PlannedInstallmentEntity } from "../models/PlannedInstallmentEntity.js";
+import { InstallmentUserPayment } from "../models/InstallmentUserPayment.js";
 import { myDataSource } from "../config/app-data-source.js";
 import { NotFoundError } from "../utils/classError.js";
 import { createSpendDTO } from "../dtos/spend/createSpendDTO.js";
 import { updateSpendDTO } from "../dtos/spend/updateSpendDTO.js";
 import { UserService } from "./user.js";
 import { SubcategoryService } from "./subcategory.js";
+import crypto from "crypto";
 
 export class SpendService {
     private readonly userService: UserService;
@@ -20,14 +24,14 @@ export class SpendService {
         return await myDataSource.getRepository(SpendEntity).find({
             skip: pagination.offset,
             take: pagination.limit,
-            relations: { user: true, subcategory: true },
+            relations: { user: true, subcategory: true, type: true },
         });
     }
 
     async findOneById(id: number): Promise<SpendEntity> {
         const getSpend = await myDataSource.getRepository(SpendEntity).findOne({
             where: { id },
-            relations: { user: true, subcategory: true },
+            relations: { user: true, subcategory: true, type: true },
         });
         if(!getSpend){
             throw new NotFoundError('Spend', id);
@@ -35,12 +39,9 @@ export class SpendService {
         return getSpend;
     }
 
-    // GET /users/:id_user/spends?subcategory=<id_subcategory>
     async findByUserAndSubcategory(userId: number, subcategoryId: number, pagination: Pagination): Promise<SpendEntity[]> {
-        //Validate that the subcategory (query value) exists; findOneById throws if it doesn't;
         await this.subcategoryService.findOneById(subcategoryId);
 
-        //Where by the user (path) and the subcategory FK (query);
         return await myDataSource.getRepository(SpendEntity).find({
             where: {
                 user: { id: userId },
@@ -48,35 +49,89 @@ export class SpendService {
             },
             skip: pagination.offset,
             take: pagination.limit,
-            relations: { user: true, subcategory: true },
+            relations: { user: true, subcategory: true, type: true },
         });
     }
 
-    async create(createSpendDTO: createSpendDTO): Promise<SpendEntity> {
-        //findOneById already throws NotFoundError if the resource doesn't exist;
-        const user = await this.userService.findOneById(createSpendDTO.userId);
-        const subcategory = await this.subcategoryService.findOneById(createSpendDTO.subcategoryId);
+    async create(dto: createSpendDTO): Promise<SpendEntity> {
+        const user = await this.userService.findOneById(dto.userId);
+        const subcategory = await this.subcategoryService.findOneById(dto.subcategoryId);
+        const typeSpend = await myDataSource.getRepository(TypeSpendEntity).findOneBy({ id: dto.fkTypeSpend });
+        if(!typeSpend){
+            throw new NotFoundError('TypeSpend', dto.fkTypeSpend);
+        }
 
         const newSpend = new SpendEntity();
-        newSpend.name = createSpendDTO.name;
-        newSpend.amount = createSpendDTO.amount;
+        newSpend.name = dto.name;
+        newSpend.amount = dto.amount;
         newSpend.user = user;
         newSpend.subcategory = subcategory;
-        return await myDataSource.getRepository(SpendEntity).save(newSpend);
+        newSpend.type = typeSpend;
+        newSpend.minDayToPayment = dto.minDayToPayment;
+        newSpend.maxDayToPayment = dto.maxDayToPayment ?? dto.minDayToPayment;
+        newSpend.totalInstallment = dto.totalInstallment ?? 1;
+        newSpend.startPayment = dto.startPayment ? new Date(dto.startPayment) : new Date();
+
+        // Perform transactional creation of Spend, PlannedInstallments and InstallmentUserPayments
+        return await myDataSource.transaction(async (transactionalEntityManager) => {
+            const savedSpend = await transactionalEntityManager.save(newSpend);
+
+            const N = savedSpend.totalInstallment;
+            const amountPerInstallment = Math.round((savedSpend.amount / N) * 100) / 100;
+            const startPaymentDate = new Date(savedSpend.startPayment);
+
+            // Helper to secure date calculation without month rollovers (UTC safe)
+            const getInstallmentDate = (startDate: Date, monthsToAdd: number, targetDay: number): Date => {
+                const d = new Date(startDate);
+                d.setUTCDate(1);
+                d.setUTCMonth(d.getUTCMonth() + monthsToAdd);
+                const lastDay = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+                d.setUTCDate(Math.min(targetDay, lastDay));
+                d.setUTCHours(0, 0, 0, 0);
+                return d;
+            };
+
+            for (let i = 0; i < N; i++) {
+                const pi = new PlannedInstallmentEntity();
+                pi.idPI = `${savedSpend.id}-${i + 1}`;
+                pi.amount = amountPerInstallment;
+                pi.availableDate = getInstallmentDate(startPaymentDate, i, savedSpend.minDayToPayment);
+                pi.expirationDate = getInstallmentDate(startPaymentDate, i, savedSpend.maxDayToPayment);
+                pi.piId = savedSpend;
+
+                const savedPI = await transactionalEntityManager.save(pi);
+
+                // Create associated InstallmentUserPayment pending record
+                const payment = new InstallmentUserPayment();
+                payment.idPayment = crypto.randomUUID();
+                payment.accepted = false;
+                payment.paidAmount = 0;
+                payment.paymentDone = false;
+                payment.plannedInstallment = savedPI;
+                payment.user = user;
+
+                await transactionalEntityManager.save(payment);
+            }
+
+            return savedSpend;
+        });
     }
 
     async update(id: number, updateSpendDTO: updateSpendDTO): Promise<SpendEntity> {
-        // findOneById already throws NotFoundError if it doesn't exist;
         const spend = await this.findOneById(id);
 
-        //If the user changes, findOneById throws if the new one doesn't exist;
         if(updateSpendDTO.userId){
             spend.user = await this.userService.findOneById(updateSpendDTO.userId);
         }
-
-        //If the subcategory changes, findOneById throws if the new one doesn't exist;
         if(updateSpendDTO.subcategoryId){
             spend.subcategory = await this.subcategoryService.findOneById(updateSpendDTO.subcategoryId);
+        }
+        if(updateSpendDTO.fkTypeSpend){
+            const typeSpend = await myDataSource.getRepository(TypeSpendEntity).findOneBy({ id: updateSpendDTO.fkTypeSpend });
+            if(!typeSpend){
+                throw new NotFoundError('TypeSpend', updateSpendDTO.fkTypeSpend);
+            }
+            spend.type = typeSpend;
         }
 
         if(updateSpendDTO.name !== undefined){
@@ -85,12 +140,23 @@ export class SpendService {
         if(updateSpendDTO.amount !== undefined){
             spend.amount = updateSpendDTO.amount;
         }
+        if(updateSpendDTO.minDayToPayment !== undefined){
+            spend.minDayToPayment = updateSpendDTO.minDayToPayment;
+        }
+        if(updateSpendDTO.maxDayToPayment !== undefined){
+            spend.maxDayToPayment = updateSpendDTO.maxDayToPayment;
+        }
+        if(updateSpendDTO.totalInstallment !== undefined){
+            spend.totalInstallment = updateSpendDTO.totalInstallment;
+        }
+        if(updateSpendDTO.startPayment !== undefined){
+            spend.startPayment = new Date(updateSpendDTO.startPayment);
+        }
 
         return await myDataSource.getRepository(SpendEntity).save(spend);
     }
 
     async delete(id: number): Promise<void> {
-        // findOneById already throws NotFoundError if it doesn't exist;
         const spend = await this.findOneById(id);
         await myDataSource.getRepository(SpendEntity).remove(spend);
     }

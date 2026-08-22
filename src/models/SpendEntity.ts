@@ -23,7 +23,7 @@ export class SpendEntity {
     name: string;
 
     @Column({ type: "double precision", nullable: false })
-    totalAmount: number;
+    amount: number;
 
     @Column({type: "int", nullable: false})
     minDayToPayment: number;

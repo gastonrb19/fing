@@ -13,6 +13,7 @@
 
     /* Chequeo de tipos estricto */
     "strict": true,
+    "strictPropertyInitialization": false,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
 
@@ -29,6 +30,6 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["src/**/*.ts", "server.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", "server.ts"],
   "exclude": ["node_modules", "dist"]
 }

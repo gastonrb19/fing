@@ -1,3 +1,11 @@
 
 - [x] Test husky WF. (100%) (Fecha: 2026-08-16)
 - [x] Test husky WF with history. (100%) (Fecha: 2026-08-16)
+- [x] Verificar disparo instantáneo del dashboard (repository_dispatch) (100%) (Fecha: 2026-08-22)
+- [x] Crear clase `BaseController` y `BaseService` para estandarizar respuestas y manejo de errores. (Fecha: 2026-08-22)
+- [x] Implementar `UserService`, `UserController` y rutas básicas (CRUD). (Fecha: 2026-08-22)
+- [x] Implementar `CategoryService`, `CategoryController` y rutas (CRUD). (Fecha: 2026-08-22)
+- [x] Implementar `GastoService` y `GastoController`. (Fecha: 2026-08-22)
+- [x] Crear rutas de Gastos (`POST`, `GET`, `PUT`, `DELETE`). (Fecha: 2026-08-22)
+- [x] Implementar `DebtService`, `DebtController` y rutas (CRUD). (Descartado por requerimiento) (Fecha: 2026-08-22)
+- [x] **Lógica de Negocio (Trigger):** Implementar lógica en `GastoService` que detecte categoría 'Deuda' y cree automáticamente el registro correspondiente en la tabla/entidad `Debt`. (Reemplazado por Cuotas y Tipo de Gasto) (Fecha: 2026-08-22)

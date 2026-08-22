@@ -5,26 +5,26 @@ export class CreateSubcategory1783565882603 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`
-            CREATE TABLE "subcategory_entity" (
+            CREATE TABLE "SUBCATEGORY" (
                 "id" SERIAL NOT NULL,
                 "name" character varying NOT NULL,
                 "description" character varying,
                 "categoryId" integer NOT NULL,
-                CONSTRAINT "UQ_subcategory_entity_name" UNIQUE ("name"),
-                CONSTRAINT "PK_subcategory_entity_id" PRIMARY KEY ("id")
+                CONSTRAINT "UQ_SUBCATEGORY_name" UNIQUE ("name"),
+                CONSTRAINT "PK_SUBCATEGORY_id" PRIMARY KEY ("id")
             )
         `);
 
         await queryRunner.query(`
-            ALTER TABLE "subcategory_entity"
-            ADD CONSTRAINT "FK_subcategory_entity_categoryId"
-            FOREIGN KEY ("categoryId") REFERENCES "category_entity"("id")
+            ALTER TABLE "SUBCATEGORY"
+            ADD CONSTRAINT "FK_SUBCATEGORY_categoryId"
+            FOREIGN KEY ("categoryId") REFERENCES "CATEGORY"("id")
             ON DELETE CASCADE ON UPDATE NO ACTION
         `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "subcategory_entity" DROP CONSTRAINT "FK_subcategory_entity_categoryId"`);
-        await queryRunner.query(`DROP TABLE "subcategory_entity"`);
+        await queryRunner.query(`ALTER TABLE "SUBCATEGORY" DROP CONSTRAINT "FK_SUBCATEGORY_categoryId"`);
+        await queryRunner.query(`DROP TABLE "SUBCATEGORY"`);
     }
 }
