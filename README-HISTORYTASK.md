@@ -9,3 +9,4 @@
 - [x] Crear rutas de Gastos (`POST`, `GET`, `PUT`, `DELETE`). (Fecha: 2026-08-22)
 - [x] Implementar `DebtService`, `DebtController` y rutas (CRUD). (Descartado por requerimiento) (Fecha: 2026-08-22)
 - [x] **Lógica de Negocio (Trigger):** Implementar lógica en `GastoService` que detecte categoría 'Deuda' y cree automáticamente el registro correspondiente en la tabla/entidad `Debt`. (Reemplazado por Cuotas y Tipo de Gasto) (Fecha: 2026-08-22)
+- [x] Agregar servicio de amistad para aceptar cuotas de pagos asociados a otros usuarios en el sistema (100%) (Fecha: 2026-10-03)

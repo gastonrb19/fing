@@ -3,8 +3,10 @@ import { SpendEntity } from "../models/SpendEntity.js";
 import { TypeSpendEntity } from "../models/TypeSpendEntity.js";
 import { PlannedInstallmentEntity } from "../models/PlannedInstallmentEntity.js";
 import { InstallmentUserPayment } from "../models/InstallmentUserPayment.js";
+import { FriendshipEntity } from "../models/FriendshipEntity.js";
+import { User } from "../models/UserEntity.js";
 import { myDataSource } from "../config/app-data-source.js";
-import { NotFoundError } from "../utils/classError.js";
+import { NotFoundError, GeneralError } from "../utils/classError.js";
 import { createSpendDTO } from "../dtos/spend/createSpendDTO.js";
 import { updateSpendDTO } from "../dtos/spend/updateSpendDTO.js";
 import { UserService } from "./user.js";
@@ -61,6 +63,28 @@ export class SpendService {
             throw new NotFoundError('TypeSpend', dto.fkTypeSpend);
         }
 
+        let splits = dto.participants;
+        if (!splits || splits.length === 0) {
+            splits = [{ userId: dto.userId, percentage: 100 }];
+        }
+
+        // 1. Validar que todos los participantes existan y sean amigos del creador (si no son él mismo)
+        const participantUsers = new Map<number, User>();
+        participantUsers.set(user.id, user);
+
+        const friendshipRepo = myDataSource.getRepository(FriendshipEntity);
+
+        for (const split of splits) {
+            if (split.userId !== dto.userId) {
+                const isFriend = await friendshipRepo.findOneBy({ userId: dto.userId, friendId: split.userId });
+                if (!isFriend) {
+                    throw new GeneralError(`El usuario con ID ${split.userId} no es amigo del creador.`, 400, "BAD_REQUEST");
+                }
+                const splitUser = await this.userService.findOneById(split.userId);
+                participantUsers.set(splitUser.id, splitUser);
+            }
+        }
+
         const newSpend = new SpendEntity();
         newSpend.name = dto.name;
         newSpend.amount = dto.amount;
@@ -72,7 +96,6 @@ export class SpendService {
         newSpend.totalInstallment = dto.totalInstallment ?? 1;
         newSpend.startPayment = dto.startPayment ? new Date(dto.startPayment) : new Date();
 
-        // Perform transactional creation of Spend, PlannedInstallments and InstallmentUserPayments
         return await myDataSource.transaction(async (transactionalEntityManager) => {
             const savedSpend = await transactionalEntityManager.save(newSpend);
 
@@ -80,7 +103,6 @@ export class SpendService {
             const amountPerInstallment = Math.round((savedSpend.amount / N) * 100) / 100;
             const startPaymentDate = new Date(savedSpend.startPayment);
 
-            // Helper to secure date calculation without month rollovers (UTC safe)
             const getInstallmentDate = (startDate: Date, monthsToAdd: number, targetDay: number): Date => {
                 const d = new Date(startDate);
                 d.setUTCDate(1);
@@ -101,16 +123,23 @@ export class SpendService {
 
                 const savedPI = await transactionalEntityManager.save(pi);
 
-                // Create associated InstallmentUserPayment pending record
-                const payment = new InstallmentUserPayment();
-                payment.idPayment = crypto.randomUUID();
-                payment.accepted = false;
-                payment.paidAmount = 0;
-                payment.paymentDone = false;
-                payment.plannedInstallment = savedPI;
-                payment.user = user;
+                // Dividimos la cuota según los porcentajes de los participantes
+                for (const split of splits) {
+                    const payment = new InstallmentUserPayment();
+                    payment.idPayment = crypto.randomUUID();
+                    payment.accepted = false;
+                    
+                    // Cálculo de asignación exacta
+                    const userAssignedAmount = Math.round((amountPerInstallment * (split.percentage / 100)) * 100) / 100;
+                    
+                    payment.assignedAmount = userAssignedAmount;
+                    payment.paidAmount = 0;
+                    payment.paymentDone = false;
+                    payment.plannedInstallment = savedPI;
+                    payment.user = participantUsers.get(split.userId)!;
 
-                await transactionalEntityManager.save(payment);
+                    await transactionalEntityManager.save(payment);
+                }
             }
 
             return savedSpend;

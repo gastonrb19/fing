@@ -1,22 +1,24 @@
 import { Router } from "express";
-import { InstallmentUserPaymentController } from "../controllers/installmentUserPayment.js";
-import { InstallmentUserPaymentService } from "../services/installmentUserPayment.js";
-import { validateBody } from "../middlewares/validation.js";
-import { createInstallmentUserPaymentSchema, updateInstallmentUserPaymentSchema } from "../schemas/installmentUserPayment.schema.js";
+import { 
+    getAllPayments, 
+    getPaymentById, 
+    getPaymentsByUser, 
+    createPayment, 
+    updatePayment, 
+    deletePayment,
+    rejectPayment,
+    getRejectedPayments
+} from "../controllers/installmentUserPayment.js";
 
 const router = Router();
-const controller = new InstallmentUserPaymentController(new InstallmentUserPaymentService());
 
-router.route("/installmentuserpayments")
-    .get(controller.findAll)
-    .post(validateBody(createInstallmentUserPaymentSchema), controller.create);
-
-router.route("/installmentuserpayments/:idPayment")
-    .get(controller.findOne)
-    .put(validateBody(updateInstallmentUserPaymentSchema), controller.update)
-    .delete(controller.delete);
-
-router.route("/users/:userId/installmentuserpayments")
-    .get(controller.findByUser);
+router.get("/installmentuserpayments", getAllPayments);
+router.get("/installmentuserpayments/rejected", getRejectedPayments); // Debe ir arriba de /:id para no confundir ruteo
+router.get("/installmentuserpayments/:id", getPaymentById);
+router.get("/users/:userId/installmentuserpayments", getPaymentsByUser);
+router.post("/installmentuserpayments", createPayment);
+router.put("/installmentuserpayments/:id", updatePayment);
+router.put("/installmentuserpayments/:id/reject", rejectPayment);
+router.delete("/installmentuserpayments/:id", deletePayment);
 
 export default router;

@@ -1,3 +1,8 @@
+export interface ParticipantSplit {
+    userId: number;
+    percentage: number;
+}
+
 export interface createSpendDTO {
     name: string;
     amount: number;
@@ -8,4 +13,5 @@ export interface createSpendDTO {
     totalInstallment?: number;
     startPayment?: Date | string;
     fkTypeSpend: number;
+    participants?: ParticipantSplit[];
 }

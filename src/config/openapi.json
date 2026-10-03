@@ -48,13 +48,19 @@
             "name": "limit",
             "in": "query",
             "required": false,
-            "schema": { "type": "integer", "default": 10 }
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
           },
           {
             "name": "offset",
             "in": "query",
             "required": false,
-            "schema": { "type": "integer", "default": 0 }
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
           }
         ],
         "responses": {
@@ -79,7 +85,9 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "integer" }
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -98,7 +106,9 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "integer" }
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "requestBody": {
@@ -107,7 +117,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["user"],
+                "required": [
+                  "user"
+                ],
                 "properties": {
                   "user": {
                     "$ref": "#/components/schemas/UpdateUserDTO"
@@ -188,7 +200,9 @@
             "name": "categoryId",
             "in": "path",
             "required": true,
-            "schema": { "type": "integer" }
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -245,7 +259,9 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "integer" }
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -261,7 +277,9 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "integer" }
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "requestBody": {
@@ -270,7 +288,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["spend"],
+                "required": [
+                  "spend"
+                ],
                 "properties": {
                   "spend": {
                     "$ref": "#/components/schemas/UpdateSpendDTO"
@@ -294,7 +314,9 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "integer" }
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -312,14 +334,18 @@
             "name": "id_user",
             "in": "path",
             "required": true,
-            "schema": { "type": "integer" }
+            "schema": {
+              "type": "integer"
+            }
           },
           {
             "name": "subcategory",
             "in": "query",
             "required": true,
             "description": "ID de la subcategoría para filtrar",
-            "schema": { "type": "integer" }
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -358,7 +384,9 @@
             "name": "spendId",
             "in": "path",
             "required": true,
-            "schema": { "type": "integer" }
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -377,14 +405,18 @@
             "name": "userId",
             "in": "path",
             "required": true,
-            "schema": { "type": "integer" }
+            "schema": {
+              "type": "integer"
+            }
           },
           {
             "name": "done",
             "in": "query",
             "required": false,
             "description": "true para pagados, false para pendientes",
-            "schema": { "type": "boolean" }
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -404,7 +436,10 @@
             "in": "path",
             "required": true,
             "description": "UUID identificador del pago",
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "requestBody": {
@@ -413,7 +448,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["installmentUserPayment"],
+                "required": [
+                  "installmentUserPayment"
+                ],
                 "properties": {
                   "installmentUserPayment": {
                     "$ref": "#/components/schemas/UpdateInstallmentUserPaymentDTO"
@@ -429,90 +466,395 @@
           }
         }
       }
+    },
+    "/friend-requests": {
+      "post": {
+        "summary": "Enviar solicitud de amistad",
+        "tags": [
+          "Friendships"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFriendRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Solicitud enviada"
+          }
+        }
+      }
+    },
+    "/friend-requests/{id}/respond": {
+      "put": {
+        "summary": "Responder a una solicitud",
+        "tags": [
+          "Friendships"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespondFriendRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud respondida"
+          }
+        }
+      }
+    },
+    "/friend-requests/users/{userId}/friend-requests": {
+      "get": {
+        "summary": "Ver solicitudes pendientes recibidas",
+        "tags": [
+          "Friendships"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de solicitudes"
+          }
+        }
+      }
+    },
+    "/users/{userId}/friends": {
+      "get": {
+        "summary": "Listar amigos",
+        "tags": [
+          "Friendships"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de amistades"
+          }
+        }
+      }
+    },
+    "/users/{userId}/friends/{friendId}": {
+      "delete": {
+        "summary": "Eliminar amistad",
+        "tags": [
+          "Friendships"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "friendId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Amistad eliminada"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
       "CreateUserDTO": {
         "type": "object",
-        "required": ["username", "email", "hashedPassword", "phone"],
+        "required": [
+          "username",
+          "email",
+          "hashedPassword",
+          "phone"
+        ],
         "properties": {
-          "username": { "type": "string", "example": "gaston" },
-          "email": { "type": "string", "format": "email", "example": "gaston@test.com" },
-          "hashedPassword": { "type": "string", "example": "miPasswordSegura" },
-          "phone": { "type": "string", "example": "987654321" }
+          "username": {
+            "type": "string",
+            "example": "gaston"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "gaston@test.com"
+          },
+          "hashedPassword": {
+            "type": "string",
+            "example": "miPasswordSegura"
+          },
+          "phone": {
+            "type": "string",
+            "example": "987654321"
+          }
         }
       },
       "UpdateUserDTO": {
         "type": "object",
         "properties": {
-          "username": { "type": "string", "example": "gaston" },
-          "email": { "type": "string", "format": "email", "example": "gaston.nuevo@test.com" },
-          "hashedPassword": { "type": "string", "example": "nuevaPassword" },
-          "phone": { "type": "string", "example": "987654321" }
+          "username": {
+            "type": "string",
+            "example": "gaston"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "gaston.nuevo@test.com"
+          },
+          "hashedPassword": {
+            "type": "string",
+            "example": "nuevaPassword"
+          },
+          "phone": {
+            "type": "string",
+            "example": "987654321"
+          }
         }
       },
       "CreateCategoryDTO": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
-          "name": { "type": "string", "example": "Servicios Básicos" },
-          "description": { "type": "string", "example": "Gastos obligatorios" }
+          "name": {
+            "type": "string",
+            "example": "Servicios Básicos"
+          },
+          "description": {
+            "type": "string",
+            "example": "Gastos obligatorios"
+          }
         }
       },
       "CreateSubcategoryDTO": {
         "type": "object",
-        "required": ["name", "categoryId"],
+        "required": [
+          "name",
+          "categoryId"
+        ],
         "properties": {
-          "name": { "type": "string", "example": "Electricidad" },
-          "description": { "type": "string", "example": "Pago mensual del servicio eléctrico" },
-          "categoryId": { "type": "integer", "example": 1 }
+          "name": {
+            "type": "string",
+            "example": "Electricidad"
+          },
+          "description": {
+            "type": "string",
+            "example": "Pago mensual del servicio eléctrico"
+          },
+          "categoryId": {
+            "type": "integer",
+            "example": 1
+          }
         }
       },
       "CreateSpendDTO": {
         "type": "object",
-        "required": ["name", "amount", "userId", "subcategoryId", "minDayToPayment", "fkTypeSpend"],
+        "required": [
+          "name",
+          "amount",
+          "userId",
+          "subcategoryId",
+          "minDayToPayment",
+          "fkTypeSpend"
+        ],
         "properties": {
-          "name": { "type": "string", "description": "Título del gasto o ingreso", "example": "Compra de Supermercado" },
-          "amount": { "type": "number", "description": "Monto total", "example": 30000 },
-          "userId": { "type": "integer", "description": "ID del usuario creador (debe existir)", "example": 1 },
-          "subcategoryId": { "type": "integer", "description": "ID de la subcategoría (debe existir)", "example": 1 },
-          "minDayToPayment": { "type": "integer", "description": "Día mínimo/inicio de pago del mes (1 a 31)", "example": 5 },
-          "maxDayToPayment": { "type": "integer", "description": "Día máximo/límite de pago (1 a 31)", "example": 10 },
-          "totalInstallment": { "type": "integer", "description": "Número total de cuotas", "example": 3 },
-          "startPayment": { "type": "string", "format": "date", "description": "Fecha inicial de pago", "example": "2026-08-01" },
-          "fkTypeSpend": { "type": "integer", "description": "ID del Tipo de Spend (1: Ingreso, 2: Gasto)", "example": 2 }
+          "name": {
+            "type": "string",
+            "description": "Título del gasto o ingreso",
+            "example": "Compra de Supermercado"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Monto total",
+            "example": 30000
+          },
+          "userId": {
+            "type": "integer",
+            "description": "ID del usuario creador (debe existir)",
+            "example": 1
+          },
+          "subcategoryId": {
+            "type": "integer",
+            "description": "ID de la subcategoría (debe existir)",
+            "example": 1
+          },
+          "minDayToPayment": {
+            "type": "integer",
+            "description": "Día mínimo/inicio de pago del mes (1 a 31)",
+            "example": 5
+          },
+          "maxDayToPayment": {
+            "type": "integer",
+            "description": "Día máximo/límite de pago (1 a 31)",
+            "example": 10
+          },
+          "totalInstallment": {
+            "type": "integer",
+            "description": "Número total de cuotas",
+            "example": 3
+          },
+          "startPayment": {
+            "type": "string",
+            "format": "date",
+            "description": "Fecha inicial de pago",
+            "example": "2026-08-01"
+          },
+          "fkTypeSpend": {
+            "type": "integer",
+            "description": "ID del Tipo de Spend (1: Ingreso, 2: Gasto)",
+            "example": 2
+          }
         }
       },
       "UpdateSpendDTO": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "example": "Compra de Supermercado Modificada" },
-          "amount": { "type": "number", "example": 35000 },
-          "userId": { "type": "integer", "example": 1 },
-          "subcategoryId": { "type": "integer", "example": 1 },
-          "minDayToPayment": { "type": "integer", "example": 5 },
-          "maxDayToPayment": { "type": "integer", "example": 10 },
-          "totalInstallment": { "type": "integer", "example": 1 },
-          "startPayment": { "type": "string", "format": "date", "example": "2026-08-01" },
-          "fkTypeSpend": { "type": "integer", "example": 2 }
+          "name": {
+            "type": "string",
+            "example": "Compra de Supermercado Modificada"
+          },
+          "amount": {
+            "type": "number",
+            "example": 35000
+          },
+          "userId": {
+            "type": "integer",
+            "example": 1
+          },
+          "subcategoryId": {
+            "type": "integer",
+            "example": 1
+          },
+          "minDayToPayment": {
+            "type": "integer",
+            "example": 5
+          },
+          "maxDayToPayment": {
+            "type": "integer",
+            "example": 10
+          },
+          "totalInstallment": {
+            "type": "integer",
+            "example": 1
+          },
+          "startPayment": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-08-01"
+          },
+          "fkTypeSpend": {
+            "type": "integer",
+            "example": 2
+          }
         }
       },
       "UpdateInstallmentUserPaymentDTO": {
         "type": "object",
         "properties": {
-          "paymentDone": { "type": "boolean", "description": "Indica si el usuario completó el pago", "example": true },
-          "paidAmount": { "type": "number", "description": "Monto efectivamente pagado por el usuario", "example": 10000 },
-          "accepted": { "type": "boolean", "description": "Indica si el administrador aprobó/concilió la transacción", "example": false }
+          "paymentDone": {
+            "type": "boolean",
+            "description": "Indica si el usuario completó el pago",
+            "example": true
+          },
+          "paidAmount": {
+            "type": "number",
+            "description": "Monto efectivamente pagado por el usuario",
+            "example": 10000
+          },
+          "accepted": {
+            "type": "boolean",
+            "description": "Indica si el administrador aprobó/concilió la transacción",
+            "example": false
+          }
         }
       },
       "StandardResponse": {
         "type": "object",
         "properties": {
-          "success": { "type": "boolean", "example": true },
-          "code_message": { "type": "string", "example": "ABC" },
-          "len": { "type": "integer", "example": 1 },
-          "data": { "type": "object" }
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "code_message": {
+            "type": "string",
+            "example": "ABC"
+          },
+          "len": {
+            "type": "integer",
+            "example": 1
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      },
+      "CreateFriendRequest": {
+        "type": "object",
+        "required": [
+          "receiverId"
+        ],
+        "properties": {
+          "receiverId": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
+      "RespondFriendRequest": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "REJECTED"
+            ],
+            "example": "ACCEPTED"
+          }
         }
       }
     }

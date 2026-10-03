@@ -1,94 +1,60 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { InstallmentUserPaymentService } from "../services/installmentUserPayment.js";
 import { dryFn } from "../utils/dryFn.js";
-import { checkAndConvertPagination } from "../utils/checkPagination.js";
 
-export class InstallmentUserPaymentController {
-    private readonly service: InstallmentUserPaymentService;
-    constructor(service: InstallmentUserPaymentService) {
-        this.service = service;
-    }
+const service = new InstallmentUserPaymentService();
 
-    findAll = dryFn(async (req: Request, res: Response, next: NextFunction) => {
-        const { limit, offset } = checkAndConvertPagination({
-            limit: req.query.limit as string | undefined,
-            offset: req.query.offset as string | undefined,
-        });
+export const getAllPayments = dryFn(async (req: Request, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const payments = await service.findAll({ offset: (page - 1) * limit, limit });
+    res.status(200).json(payments);
+});
 
-        const payments = await this.service.findAll({ limit, offset });
-        res.status(200).json({
-            success: true,
-            code_message: "ABC",
-            len: payments.length,
-            data: payments,
-        });
-    });
+export const getPaymentById = dryFn(async (req: Request, res: Response) => {
+    const payment = await service.findOneById(req.params.id as string);
+    res.status(200).json(payment);
+});
 
-    findOne = dryFn(async (req: Request, res: Response, next: NextFunction) => {
-        const payment = await this.service.findOneById(req.params.idPayment as string);
-        res.status(200).json({
-            success: true,
-            code_message: "ABC",
-            len: 1,
-            data: payment,
-        });
-    });
+export const getPaymentsByUser = dryFn(async (req: Request, res: Response) => {
+    const userId = parseInt(req.params.userId as string);
+    const done = req.query.done ? req.query.done === 'true' : undefined;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
 
-    findByUser = dryFn(async (req: Request, res: Response, next: NextFunction) => {
-        const { limit, offset } = checkAndConvertPagination({
-            limit: req.query.limit as string | undefined,
-            offset: req.query.offset as string | undefined,
-        });
+    const payments = await service.findByUser(userId, done, { offset: (page - 1) * limit, limit });
+    res.status(200).json(payments);
+});
 
-        let done: boolean | undefined = undefined;
-        if (req.query.done !== undefined) {
-            done = req.query.done === "true";
-        }
+export const createPayment = dryFn(async (req: Request, res: Response) => {
+    const payment = await service.create(req.body);
+    res.status(201).json(payment);
+});
 
-        const payments = await this.service.findByUser(
-            Number(req.params.userId),
-            done,
-            { limit, offset }
-        );
+export const updatePayment = dryFn(async (req: Request, res: Response) => {
+    const payment = await service.update(req.params.id as string, req.body);
+    res.status(200).json(payment);
+});
 
-        res.status(200).json({
-            success: true,
-            code_message: "ABC",
-            len: payments.length,
-            data: payments,
-        });
-    });
+export const deletePayment = dryFn(async (req: Request, res: Response) => {
+    await service.delete(req.params.id as string);
+    res.status(204).send();
+});
 
-    create = dryFn(async (req: Request, res: Response, next: NextFunction) => {
-        const newPayment = await this.service.create(req.body);
-        res.status(201).json({
-            success: true,
-            code_message: "ABC",
-            len: 1,
-            data: newPayment,
-        });
-    });
+// NUEVOS ENDPOINTS DE RECHAZO
+export const rejectPayment = dryFn(async (req: Request, res: Response) => {
+    const userId = req.body.currentUser || 1; // Mismo auth hardcoded
+    const idPayment = req.params.id;
 
-    update = dryFn(async (req: Request, res: Response, next: NextFunction) => {
-        if (!req.body.installmentUserPayment) {
-            throw new Error("Bad request, 'installmentUserPayment' body object is required.");
-        }
-        const updated = await this.service.update(req.params.idPayment as string, req.body.installmentUserPayment);
-        res.status(200).json({
-            success: true,
-            code_message: "ABC",
-            len: 1,
-            data: updated,
-        });
-    });
+    const payment = await service.rejectPayment(idPayment as string, userId);
+    res.status(200).json(payment);
+});
 
-    delete = dryFn(async (req: Request, res: Response, next: NextFunction) => {
-        await this.service.delete(req.params.idPayment as string);
-        res.status(200).json({
-            success: true,
-            code_message: "ABC",
-            len: 0,
-            data: null,
-        });
-    });
-}
+export const getRejectedPayments = dryFn(async (req: Request, res: Response) => {
+    const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const payments = await service.getRejectedPayments({ offset: (page - 1) * limit, limit }, userId);
+    res.status(200).json(payments);
+});

@@ -10,6 +10,12 @@ export class InstallmentUserPayment {
     @Column({type: "boolean", nullable: false})
     accepted: boolean;
 
+    @Column({type: "boolean", nullable: false, default: false})
+    rejected: boolean;
+
+    @Column({type: "double precision", nullable: false, default: 0})
+    assignedAmount: number;
+
     @Column({type: "double precision", nullable: false})
     paidAmount: number;
 
@@ -23,4 +29,8 @@ export class InstallmentUserPayment {
     @ManyToOne(() => User, (user) => user.installmentUserPayments)
     @JoinColumn({ name: "userId" })
     user : User;
+
+    @ManyToOne(() => User, { nullable: true })
+    @JoinColumn({ name: "assumedByUserId" })
+    assumedByUser: User;
 }
