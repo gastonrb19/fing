@@ -27,3 +27,17 @@ export const getPendingRequests = dryFn(async (req: Request, res: Response) => {
     const requests = await friendRequestService.getPendingRequests(userId);
     res.status(200).json(requests);
 });
+
+
+export const getSentRequests = dryFn(async (req: Request, res: Response) => {
+    const userId = parseInt(req.params.userId as string);
+    const requests = await friendRequestService.getSentRequests(userId);
+    res.status(200).json(requests);
+});
+
+export const cancelRequest = dryFn(async (req: Request, res: Response) => {
+    const requestId = parseInt(req.params.id as string);
+    const senderId = req.body.currentUser || 1;
+    await friendRequestService.cancelRequest(requestId, senderId);
+    res.status(200).json({ message: "Solicitud cancelada correctamente" });
+});

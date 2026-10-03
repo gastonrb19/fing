@@ -12,8 +12,15 @@ export class GeneralError extends Error {
 
 export class NotFoundError extends GeneralError {
   constructor(resourceName: string, idValue: number) {
+    // Traducción al español: Ej "Usuario con ID 4 no fue encontrado."
+    const translatedResource = resourceName === 'User' ? 'Usuario' 
+                             : resourceName === 'Spend' ? 'Gasto'
+                             : resourceName === 'Category' ? 'Categoría'
+                             : resourceName === 'FriendRequest' ? 'Solicitud de amistad'
+                             : resourceName;
+                             
     super(
-      `Resource "(${resourceName})" not found with id "(${idValue})"`,
+      `El recurso (${translatedResource}) con identificador (${idValue}) no fue encontrado.`,
       404,
       "NOT_FOUND",
     );

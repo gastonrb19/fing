@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import routes from './src/index.js';
 import { logError, handleError } from './src/middlewares/errorHandler.js';
 import { testConnection } from './src/config/connection.js';
@@ -14,6 +15,9 @@ const openapiSpec = JSON.parse(
 const app = express();
 
 const PORT = process.env.PORT || 8000;
+
+// Configuración de CORS para permitir solicitudes del Frontend
+app.use(cors());
 
 app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));

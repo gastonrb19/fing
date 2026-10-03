@@ -67,31 +67,40 @@ const processCleanup = () => {
     process.exit(0);
 };
 
-if (pendingTasks.length === 0) {
-    // Si no hay pendientes, igual revisamos por si hay que limpiar tareas marcadas manualmente
-    processCleanup();
-} else {
+
+function askTask() {
+    // Recalcular pendientes en tiempo real
+    const currentPending = [];
+    lines.forEach((line, index) => {
+        if (line.trim().startsWith('- [ ]') || line.trim().startsWith('- []')) {
+            currentPending.push({ index, text: line.trim() });
+        }
+    });
+
+    if (currentPending.length === 0) {
+        console.log('\n¡Todas las tareas han sido completadas!');
+        rl.close();
+        return processCleanup();
+    }
+
     console.log('\n========================================');
     console.log('📋 Tareas Pendientes en README-TASK.md');
     console.log('========================================');
-    pendingTasks.forEach((task, i) => {
-        // Limpiamos el texto para mostrarlo bonito en consola
+    currentPending.forEach((task, i) => {
         const cleanText = task.text.replace('- [ ]', '').replace('- []', '').trim();
         console.log(`${i + 1}. ${cleanText}`);
     });
-    console.log('0. Ninguna / Continuar');
+    console.log('0. Ninguna / Terminar y guardar');
 
-    rl.question('\n¿En qué tarea avanzaste? (Número): ', (answerTask) => {
+    rl.question('\n¿En qué tarea avanzaste? (Número 0 para salir): ', (answerTask) => {
         const choice = parseInt(answerTask);
         
-        if (choice > 0 && choice <= pendingTasks.length) {
-            const taskToUpdate = pendingTasks[choice - 1];
+        if (choice > 0 && choice <= currentPending.length) {
+            const taskToUpdate = currentPending[choice - 1];
             
             rl.question('¿Qué porcentaje de avance TOTAL tiene ahora? (0-100): ', (answerPct) => {
                 const pct = parseInt(answerPct);
                 let newLine = taskToUpdate.text;
-
-                // Limpiar porcentaje anterior
                 newLine = newLine.replace(/\s*\(\d+%\)$/, '');
 
                 if (pct >= 100) {
@@ -104,19 +113,24 @@ if (pendingTasks.length === 0) {
 
                 lines[taskToUpdate.index] = newLine;
                 
-                // Si no llegó al 100, solo guardamos el TASK_FILE. Si llegó a 100, processCleanup lo moverá.
-                if (pct < 100) {
-                    fs.writeFileSync(TASK_FILE, lines.join('\n'));
-                    try { execSync(`git add ${TASK_FILE}`); } catch (e) {}
-                }
-                
-                rl.close();
-                processCleanup(); // Ejecutamos la limpieza final
+                // Volver a preguntar en un bucle
+                askTask();
             });
         } else {
-            console.log('\nContinuando con el commit...');
+            console.log('\nFinalizando actualización de tareas, preparando commit...');
+            // Guardar progreso menor a 100% al terminar el ciclo
+            fs.writeFileSync(TASK_FILE, lines.join('\n'));
+            try { execSync(`git add ${TASK_FILE}`); } catch (e) {}
+            
             rl.close();
-            processCleanup(); // Ejecutamos limpieza por si hay tareas marcadas manualmente
+            processCleanup(); // Ejecuta la limpieza de las que llegaron al 100%
         }
     });
 }
+
+if (pendingTasks.length === 0) {
+    processCleanup();
+} else {
+    askTask();
+}
+// IGNORAR EL RESTO DEL CÓDIGO VIEJO

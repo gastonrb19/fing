@@ -5,6 +5,23 @@ import { User } from "../models/UserEntity.js";
 import { GeneralError, NotFoundError } from "../utils/classError.js";
 
 export class FriendRequestService {
+
+    async getSentRequests(userId: number) {
+        return await this.requestRepo.find({
+            where: { senderId: userId, status: FriendRequestStatus.PENDING },
+            relations: { receiver: true },
+            select: { id: true, createdAt: true, receiver: { id: true, username: true, email: true } }
+        });
+    }
+
+    async cancelRequest(requestId: number, senderId: number) {
+        const request = await this.requestRepo.findOne({ where: { id: requestId } });
+        if (!request) throw new NotFoundError("FriendRequest", requestId);
+        if (request.senderId !== senderId) throw new GeneralError("No tienes permisos para cancelar esta solicitud", 403, "FORBIDDEN");
+        
+        await this.requestRepo.remove(request);
+    }
+
     private requestRepo = myDataSource.getRepository(FriendRequestEntity);
     private userRepo = myDataSource.getRepository(User);
     private friendshipRepo = myDataSource.getRepository(FriendshipEntity);
