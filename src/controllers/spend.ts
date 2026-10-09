@@ -28,23 +28,28 @@ export class SpendController {
     });
   });
 
-  // GET /users/:id_user/spends?subcategory=<id_subcategory>
+  
+  
+  // GET /users/:id_user/spends (con soporte para filtros de query)
   findByUserAndSubcategory = dryFn(async (req: Request, res: Response, next: NextFunction) => {
     const { limit, offset } = checkAndConvertPagination({
       limit: req.query.limit as string | undefined,
       offset: req.query.offset as string | undefined,
     });
 
-    // subcategory id comes as a query param and is required;
-    if(!req.query.subcategory){
-      throw new GeneralError("Bad request, query param 'subcategory' is required.", 400);
+    const userId = Number(req.params.id_user);
+    
+    // Parseo de filtros
+    const filters: any = {};
+    if (req.query.category) filters.categoryId = Number(req.query.category);
+    if (req.query.subcategory) filters.subcategoryId = Number(req.query.subcategory);
+    if (req.query.from) filters.from = req.query.from as string;
+    if (req.query.until) filters.until = req.query.until as string;
+    if (req.query.done !== undefined) {
+        filters.done = req.query.done === 'true';
     }
 
-    const spends = await this.serviceSpend.findByUserAndSubcategory(
-      Number(req.params.id_user),
-      Number(req.query.subcategory),
-      { limit, offset },
-    );
+    const spends = await this.serviceSpend.findByUser(userId, { limit, offset }, filters);
 
     res.status(200).json({
       success: true,

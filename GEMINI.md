@@ -20,3 +20,12 @@
 
 ## 6. Enrutamiento (Express)
 - **Rutas Absolutas en Routers:** Ya que `index.ts` importa las rutas utilizando `routes.use(routesFile)` sin un prefijo base, los archivos dentro de `src/routes/` DEBEN declarar la ruta completa (ej. `router.post('/friend-requests')`, nunca `router.post('/')`) para evitar que Express devuelva 404 HTML que rompan el parseo JSON del Frontend.
+
+
+## 7. Actualización de Llaves Foráneas (TypeORM)
+- **Evitar asignación directa de objetos:** Al reasignar una relación (ej. cambio de dueño en una cuota), evitar usar `entidad.relacion = nuevoObjeto` seguido de `repo.save()`, ya que TypeORM tiende a ignorar la actualización en SQL si la columna nativa no está mapeada o cacheada correctamente.
+- **Uso obligatorio de QueryBuilder para FKs:** Para forzar el cambio de ID de una relación, se DEBE utilizar el `QueryBuilder` nativo: `await myDataSource.createQueryBuilder().update(Entity).set({ relation: newObject }).where(...).execute()`.
+
+## 8. Sintaxis de Relaciones en TypeORM
+- **Cero arrays de strings:** TypeORM v1+ eliminó el soporte para `relations: ["nombre"]`. Utilizar esto provoca un Crash / Error 500 fatal.
+- **Uso obligatorio de Objetos:** Las relaciones en `find` o `findOne` deben definirse SIEMPRE usando sintaxis de objeto: `relations: { user: true, plannedInstallment: true }`.

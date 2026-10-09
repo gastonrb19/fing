@@ -26,19 +26,112 @@ export class SpendService {
         return await myDataSource.getRepository(SpendEntity).find({
             skip: pagination.offset,
             take: pagination.limit,
-            relations: { user: true, subcategory: true, type: true },
+            relations: { 
+                user: true, 
+                subcategory: true, 
+                type: true,
+                plannedInstallments: {
+                    fk_installmentUserPayment: {
+                        user: true
+                    }
+                }
+            },
+            order: {
+                plannedInstallments: {
+                    availableDate: "ASC"
+                }
+            },
         });
     }
 
     async findOneById(id: number): Promise<SpendEntity> {
         const getSpend = await myDataSource.getRepository(SpendEntity).findOne({
             where: { id },
-            relations: { user: true, subcategory: true, type: true },
+            relations: { 
+                user: true, 
+                subcategory: {
+                    category: true
+                }, 
+                type: true,
+                plannedInstallments: {
+                    fk_installmentUserPayment: {
+                        user: true
+                    }
+                }
+            },
+            order: {
+                plannedInstallments: {
+                    availableDate: "ASC"
+                }
+            }
         });
         if(!getSpend){
             throw new NotFoundError('Spend', id);
         }
         return getSpend;
+    }
+
+    
+    async findByUser(userId: number, pagination: Pagination, filters?: { categoryId?: number, subcategoryId?: number, from?: string, until?: string, done?: boolean }): Promise<SpendEntity[]> {
+        const qb = myDataSource.getRepository(SpendEntity).createQueryBuilder("spend")
+            .leftJoinAndSelect("spend.user", "user")
+            .leftJoinAndSelect("spend.subcategory", "subcategory")
+            .leftJoinAndSelect("subcategory.category", "category")
+            .leftJoinAndSelect("spend.type", "type")
+            .where("spend.userId = :userId", { userId });
+
+        if (filters?.categoryId) {
+            qb.andWhere("category.id = :categoryId", { categoryId: filters.categoryId });
+        }
+        if (filters?.subcategoryId) {
+            qb.andWhere("subcategory.id = :subcategoryId", { subcategoryId: filters.subcategoryId });
+        }
+        if (filters?.from) {
+            qb.andWhere("spend.startPayment >= :from", { from: filters.from });
+        }
+        if (filters?.until) {
+            qb.andWhere("spend.startPayment <= :until", { until: filters.until });
+        }
+        
+        // Filtro complejo por estado de pago cruzando con PlannedInstallment y InstallmentUserPayment
+        if (filters?.done !== undefined) {
+            if (filters.done === true) {
+                // Saldados: NO existe ninguna cuota pendiente (paymentDone = false) para este gasto y este usuario
+                qb.andWhere("NOT EXISTS (SELECT 1 FROM \"INSTALLMENTUSERPAYMENT\" iup INNER JOIN \"PLANNEDINSTALLMENT\" spi ON spi.\"idPI\" = iup.\"plannedInstallmentId\" WHERE spi.\"spendId\" = spend.id AND iup.\"userId\" = :userId AND iup.\"paymentDone\" = false)", { userId });
+            } else {
+                // Pendientes: Existe al menos una cuota pendiente
+                qb.andWhere("EXISTS (SELECT 1 FROM \"INSTALLMENTUSERPAYMENT\" iup INNER JOIN \"PLANNEDINSTALLMENT\" spi ON spi.\"idPI\" = iup.\"plannedInstallmentId\" WHERE spi.\"spendId\" = spend.id AND iup.\"userId\" = :userId AND iup.\"paymentDone\" = false)", { userId });
+            }
+        }
+
+        const spends = await qb
+            .skip(pagination.offset)
+            .take(pagination.limit)
+            .orderBy("spend.startPayment", "DESC")
+            .getMany();
+
+        if (spends.length > 0) {
+            const spendIds = spends.map(s => s.id);
+            const counts = await myDataSource.getRepository("INSTALLMENTUSERPAYMENT")
+                .createQueryBuilder("iup")
+                .innerJoin("PLANNEDINSTALLMENT", "pi", "pi.\"idPI\" = iup.\"plannedInstallmentId\"")
+                .select("pi.\"spendId\"", "spendId")
+                .addSelect("COUNT(iup.\"idPayment\")", "count")
+                .where("pi.\"spendId\" IN (:...spendIds)", { spendIds })
+                .andWhere("iup.\"userId\" = :userId", { userId })
+                .andWhere("iup.\"paymentDone\" = true")
+                .groupBy("pi.\"spendId\"")
+                .getRawMany();
+
+            const countMap = new Map();
+            counts.forEach(c => countMap.set(c.spendId, Number(c.count)));
+
+            spends.forEach(spend => {
+                (spend as any).paidInstallments = countMap.get(spend.id) || 0;
+            });
+        }
+
+        return spends;
     }
 
     async findByUserAndSubcategory(userId: number, subcategoryId: number, pagination: Pagination): Promise<SpendEntity[]> {
@@ -135,6 +228,7 @@ export class SpendService {
                     payment.assignedAmount = userAssignedAmount;
                     payment.paidAmount = 0;
                     payment.paymentDone = false;
+                        payment.paidAmount = 0;
                     payment.plannedInstallment = savedPI;
                     payment.user = participantUsers.get(split.userId)!;
 
@@ -149,6 +243,13 @@ export class SpendService {
     async update(id: number, updateSpendDTO: updateSpendDTO): Promise<SpendEntity> {
         const spend = await this.findOneById(id);
 
+        const hasPaid = spend.plannedInstallments?.some(pi => 
+            pi.fk_installmentUserPayment?.some(p => p.paymentDone)
+        );
+        if (hasPaid) {
+            throw new Error("No se puede editar un gasto que ya tiene cuotas pagadas.");
+        }
+
         if(updateSpendDTO.userId){
             spend.user = await this.userService.findOneById(updateSpendDTO.userId);
         }
@@ -162,27 +263,102 @@ export class SpendService {
             }
             spend.type = typeSpend;
         }
-
         if(updateSpendDTO.name !== undefined){
             spend.name = updateSpendDTO.name;
         }
-        if(updateSpendDTO.amount !== undefined){
+        
+        let needsRecalculation = false;
+        
+        if (updateSpendDTO.amount !== undefined && updateSpendDTO.amount !== spend.amount) {
+            if (updateSpendDTO.amount <= 0) throw new Error("El monto debe ser mayor a cero.");
             spend.amount = updateSpendDTO.amount;
+            needsRecalculation = true;
         }
+        
+        if (updateSpendDTO.totalInstallment !== undefined && updateSpendDTO.totalInstallment !== spend.totalInstallment) {
+            if (updateSpendDTO.totalInstallment <= 0) throw new Error("La cantidad de cuotas debe ser mayor a cero.");
+            spend.totalInstallment = updateSpendDTO.totalInstallment;
+            needsRecalculation = true;
+        }
+
         if(updateSpendDTO.minDayToPayment !== undefined){
+            if (updateSpendDTO.minDayToPayment <= 0 || updateSpendDTO.minDayToPayment > 31) throw new Error("Día de pago inválido.");
             spend.minDayToPayment = updateSpendDTO.minDayToPayment;
         }
         if(updateSpendDTO.maxDayToPayment !== undefined){
             spend.maxDayToPayment = updateSpendDTO.maxDayToPayment;
         }
-        if(updateSpendDTO.totalInstallment !== undefined){
-            spend.totalInstallment = updateSpendDTO.totalInstallment;
-        }
-        if(updateSpendDTO.startPayment !== undefined){
-            spend.startPayment = new Date(updateSpendDTO.startPayment);
+
+        if (needsRecalculation) {
+            await myDataSource.transaction(async (tx) => {
+                const oldInstallments = spend.plannedInstallments || [];
+                const participants = [];
+                
+                if (oldInstallments.length > 0) {
+                    const firstQuota = oldInstallments[0]!;
+                    const quotaTotalAmount = firstQuota.amount || (spend.amount / oldInstallments.length);
+                    
+                    for (const payment of firstQuota.fk_installmentUserPayment || []) {
+                        const percentage = payment.assignedAmount / quotaTotalAmount;
+                        participants.push({ user: payment.user, percentage });
+                    }
+                }
+                
+                if (participants.length === 0) {
+                    participants.push({ user: spend.user, percentage: 1 });
+                }
+
+                const paymentRepo = tx.getRepository(InstallmentUserPayment);
+                const plannedRepo = tx.getRepository(PlannedInstallmentEntity);
+                
+                for (const pi of oldInstallments) {
+                    if (pi.fk_installmentUserPayment) {
+                        await paymentRepo.remove(pi.fk_installmentUserPayment);
+                    }
+                    await plannedRepo.remove(pi);
+                }
+
+                const N = spend.totalInstallment;
+                const newAmountPerInstallment = Math.round((spend.amount / N) * 100) / 100;
+                
+                spend.plannedInstallments = [];
+
+                for (let i = 0; i < N; i++) {
+                    const pi = new PlannedInstallmentEntity();
+                    pi.idPI = `${spend.id}-${i + 1}`;
+                    pi.amount = newAmountPerInstallment;
+                    pi.piId = spend;
+                    
+                    let paymentDate = new Date(spend.startPayment);
+                    paymentDate.setMonth(paymentDate.getMonth() + i);
+                    paymentDate.setDate(spend.minDayToPayment);
+                    pi.expirationDate = paymentDate;
+                    pi.availableDate = paymentDate;
+                    
+                    const savedPI = await plannedRepo.save(pi);
+                    
+                    const newPayments = [];
+                    for (const p of participants) {
+                        const payment = new InstallmentUserPayment();
+                        payment.idPayment = crypto.randomUUID();
+                        payment.plannedInstallment = savedPI;
+                        payment.assignedAmount = Math.round(newAmountPerInstallment * p.percentage * 100) / 100;
+                        payment.paymentDone = false;
+                        payment.paidAmount = 0;
+                        payment.accepted = p.user.id === spend.user.id; // El creador acepta automáticamente su deuda
+                        payment.rejected = false;
+                        payment.user = p.user;
+                        const savedPayment = await paymentRepo.save(payment);
+                        newPayments.push(savedPayment);
+                    }
+                    savedPI.fk_installmentUserPayment = newPayments;
+                    spend.plannedInstallments.push(savedPI);
+                }
+            });
         }
 
-        return await myDataSource.getRepository(SpendEntity).save(spend);
+        await myDataSource.getRepository(SpendEntity).save(spend);
+        return this.findOneById(id);
     }
 
     async delete(id: number): Promise<void> {

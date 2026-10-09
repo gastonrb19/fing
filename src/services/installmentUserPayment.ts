@@ -76,17 +76,27 @@ export class InstallmentUserPaymentService {
         return await myDataSource.getRepository(InstallmentUserPayment).save(payment);
     }
 
-    async update(idPayment: string, dto: updateInstallmentUserPaymentDTO): Promise<InstallmentUserPayment> {
+    async update(idPayment: string, dto: any): Promise<InstallmentUserPayment> {
         const payment = await this.findOneById(idPayment);
 
-        if (dto.accepted !== undefined) {
-            payment.accepted = dto.accepted;
-        }
-        if (dto.paidAmount !== undefined) {
-            payment.paidAmount = dto.paidAmount;
-        }
-        if (dto.paymentDone !== undefined) {
-            payment.paymentDone = dto.paymentDone;
+        if (dto.accepted !== undefined) payment.accepted = dto.accepted;
+        if (dto.paidAmount !== undefined) payment.paidAmount = dto.paidAmount;
+        if (dto.paymentDone !== undefined) payment.paymentDone = dto.paymentDone;
+
+        // LÓGICA DE REASIGNACIÓN DE AMIGO
+        if (dto.userId && dto.userId !== payment.user?.id) {
+            const newUser = await myDataSource.getRepository(User).findOneBy({ id: dto.userId });
+            if (!newUser) throw new Error("Usuario no encontrado");
+
+            // Usamos QueryBuilder para forzar la llave foránea
+            await myDataSource.createQueryBuilder()
+                .update(InstallmentUserPayment)
+                .set({ user: newUser, accepted: false, rejected: false })
+                .where("idPayment = :idPayment", { idPayment })
+                .execute();
+            
+            // Refrescar para devolver el nuevo estado
+            return await this.findOneById(idPayment);
         }
 
         return await myDataSource.getRepository(InstallmentUserPayment).save(payment);
