@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { InstallmentUserPaymentService } from "../services/installmentUserPayment.js";
 import { dryFn } from "../utils/dryFn.js";
+import { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
 
 const service = new InstallmentUserPaymentService();
 
@@ -41,9 +42,9 @@ export const deletePayment = dryFn(async (req: Request, res: Response) => {
     res.status(204).send();
 });
 
-// NUEVOS ENDPOINTS DE RECHAZO
+// ENDPOINTS DE RECHAZO
 export const rejectPayment = dryFn(async (req: Request, res: Response) => {
-    const userId = req.body.currentUser || 1; // Mismo auth hardcoded
+    const userId = (req as AuthenticatedRequest).user?.id || req.body.currentUser || 1;
     const idPayment = req.params.id;
 
     const payment = await service.rejectPayment(idPayment as string, userId);
@@ -51,10 +52,14 @@ export const rejectPayment = dryFn(async (req: Request, res: Response) => {
 });
 
 export const getRejectedPayments = dryFn(async (req: Request, res: Response) => {
+    const authUserId = (req as AuthenticatedRequest).user?.id;
     const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+    const creatorId = req.query.creatorId
+        ? parseInt(req.query.creatorId as string)
+        : (req.query.asCreator === "true" && authUserId ? authUserId : undefined);
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = parseInt(req.query.limit as string) || 20;
 
-    const payments = await service.getRejectedPayments({ offset: (page - 1) * limit, limit }, userId);
+    const payments = await service.getRejectedPayments({ offset: (page - 1) * limit, limit }, { userId, creatorId });
     res.status(200).json(payments);
 });

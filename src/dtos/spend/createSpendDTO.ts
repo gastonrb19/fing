@@ -12,6 +12,6 @@ export interface createSpendDTO {
     maxDayToPayment?: number;
     totalInstallment?: number;
     startPayment?: Date | string;
-    fkTypeSpend: number;
+    fkTypeSpend?: number;
     participants?: ParticipantSplit[];
 }

@@ -79,27 +79,30 @@ export class InstallmentUserPaymentService {
     async update(idPayment: string, dto: any): Promise<InstallmentUserPayment> {
         const payment = await this.findOneById(idPayment);
 
-        if (dto.accepted !== undefined) payment.accepted = dto.accepted;
-        if (dto.paidAmount !== undefined) payment.paidAmount = dto.paidAmount;
-        if (dto.paymentDone !== undefined) payment.paymentDone = dto.paymentDone;
+        const updateFields: any = {};
+        if (dto.accepted !== undefined) updateFields.accepted = dto.accepted;
+        if (dto.paidAmount !== undefined) updateFields.paidAmount = dto.paidAmount;
+        if (dto.paymentDone !== undefined) updateFields.paymentDone = dto.paymentDone;
 
         // LÓGICA DE REASIGNACIÓN DE AMIGO
         if (dto.userId && dto.userId !== payment.user?.id) {
             const newUser = await myDataSource.getRepository(User).findOneBy({ id: dto.userId });
-            if (!newUser) throw new Error("Usuario no encontrado");
+            if (!newUser) throw new NotFoundError("User", dto.userId);
 
-            // Usamos QueryBuilder para forzar la llave foránea
-            await myDataSource.createQueryBuilder()
-                .update(InstallmentUserPayment)
-                .set({ user: newUser, accepted: false, rejected: false })
-                .where("idPayment = :idPayment", { idPayment })
-                .execute();
-            
-            // Refrescar para devolver el nuevo estado
-            return await this.findOneById(idPayment);
+            updateFields.user = newUser;
+            updateFields.accepted = false;
+            updateFields.rejected = false;
         }
 
-        return await myDataSource.getRepository(InstallmentUserPayment).save(payment);
+        if (Object.keys(updateFields).length > 0) {
+            await myDataSource.createQueryBuilder()
+                .update(InstallmentUserPayment)
+                .set(updateFields)
+                .where("idPayment = :idPayment", { idPayment })
+                .execute();
+        }
+
+        return await this.findOneById(idPayment);
     }
 
     async delete(idPayment: string): Promise<void> {
@@ -130,29 +133,43 @@ export class InstallmentUserPaymentService {
                 throw new GeneralError("No puedes rechazar un pago que ya habías aceptado", 400, "BAD_REQUEST");
             }
 
-            // 1. Marcar como evidencia de que fue rechazado
-            payment.rejected = true;
-            
-            // 2. Asignar instantáneamente la deuda al creador del gasto maestro
-            payment.assumedByUser = payment.plannedInstallment.piId.user;
+            // Forzar el cambio con QueryBuilder según las reglas de TypeORM
+            await transactionalEntityManager.createQueryBuilder()
+                .update(InstallmentUserPayment)
+                .set({
+                    rejected: true,
+                    accepted: false,
+                    assumedByUser: payment.plannedInstallment.piId.user
+                })
+                .where("idPayment = :idPayment", { idPayment })
+                .execute();
 
-            await transactionalEntityManager.save(payment);
-            return payment;
+            return await transactionalEntityManager.findOne(InstallmentUserPayment, {
+                where: { idPayment },
+                relations: { plannedInstallment: { piId: { user: true } }, user: true, assumedByUser: true }
+            }) as InstallmentUserPayment;
         });
     }
 
-    async getRejectedPayments(pagination: Pagination, userId?: number): Promise<InstallmentUserPayment[]> {
+    async getRejectedPayments(pagination: Pagination, filters?: { userId?: number; creatorId?: number } | number): Promise<InstallmentUserPayment[]> {
         const whereClause: any = { rejected: true };
         
-        if (userId !== undefined) {
-            whereClause.user = { id: userId };
+        if (typeof filters === "number") {
+            whereClause.user = { id: filters };
+        } else if (filters) {
+            if (filters.userId !== undefined) {
+                whereClause.user = { id: filters.userId };
+            }
+            if (filters.creatorId !== undefined) {
+                whereClause.assumedByUser = { id: filters.creatorId };
+            }
         }
 
         return await myDataSource.getRepository(InstallmentUserPayment).find({
             where: whereClause,
             skip: pagination.offset,
             take: pagination.limit,
-            relations: { plannedInstallment: { piId: true }, user: true, assumedByUser: true },
+            relations: { plannedInstallment: { piId: { user: true } }, user: true, assumedByUser: true },
         });
     }
 }

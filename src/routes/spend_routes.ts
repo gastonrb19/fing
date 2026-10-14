@@ -7,20 +7,22 @@ import { CategoryService } from "../services/category.js";
 import { validateBody } from "../middlewares/validation.js";
 import { createSpendSchema, updateSpendSchema } from "../schemas/spend.schema.js";
 
+import { requireAuth } from "../middlewares/auth.middleware.js";
+
 const router = Router();
 const spendController = new SpendController(new SpendService(new UserService(), new SubcategoryService(new CategoryService())));
 
 // spends de un usuario, filtrados por subcategory (query param)
 router.route("/users/:id_user/spends")
-    .get(spendController.findByUserAndSubcategory);
+    .get(requireAuth, spendController.findByUserAndSubcategory);
 
 router.route("/spends")
-    .get(spendController.findAll)
-    .post(validateBody(createSpendSchema), spendController.create);
+    .get(requireAuth, spendController.findAll)
+    .post(requireAuth, validateBody(createSpendSchema), spendController.create);
 
 router.route("/spends/:id")
-    .get(spendController.findOne)
-    .put(validateBody(updateSpendSchema), spendController.update)
-    .delete(spendController.delete);
+    .get(requireAuth, spendController.findOne)
+    .put(requireAuth, validateBody(updateSpendSchema), spendController.update)
+    .delete(requireAuth, spendController.delete);
 
 export default router;

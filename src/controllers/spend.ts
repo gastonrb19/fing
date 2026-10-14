@@ -48,6 +48,9 @@ export class SpendController {
     if (req.query.done !== undefined) {
         filters.done = req.query.done === 'true';
     }
+    if (req.query.role) {
+        filters.role = req.query.role as string;
+    }
 
     const spends = await this.serviceSpend.findByUser(userId, { limit, offset }, filters);
 

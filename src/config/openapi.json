@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Fing API",
-    "version": "1.0.0",
-    "description": "API REST para Fing, la plataforma omnicanal de finanzas personales. Permite el control y registro de gastos, ingresos, planificación de cuotas y pagos asociados a usuarios."
+    "title": "Fing API - Sistema de Finanzas Personales y Gastos Compartidos",
+    "version": "2.0.0",
+    "description": "API REST integral para Fing. Incluye gestión de autenticación basada en cookies HTTP-Only y tokens JWT, administración de gastos maestros con división en cuotas y porcentajes equitativos entre amigos, auditoría de rechazos y reasignación de deudas, y relaciones de amistad."
   },
   "servers": [
     {
@@ -11,10 +11,550 @@
       "description": "Servidor Local de Desarrollo"
     }
   ],
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "token",
+        "description": "Cookie HTTP-Only 'token' inyectada automáticamente por el servidor al iniciar sesión con éxito (/auth/login)."
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token JWT enviado en la cabecera 'Authorization: Bearer <token>'."
+      }
+    },
+    "schemas": {
+      "StandardResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "code_message": {
+            "type": "string",
+            "example": "ABC"
+          },
+          "len": {
+            "type": "integer",
+            "example": 1
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "integer",
+                "example": 401
+              },
+              "message": {
+                "type": "string",
+                "example": "No autorizado: Debes iniciar sesión"
+              }
+            }
+          }
+        }
+      },
+      "LoginDTO": {
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "description": "Username o correo electrónico del usuario",
+            "example": "gaston"
+          },
+          "username": {
+            "type": "string",
+            "example": "gaston"
+          },
+          "email": {
+            "type": "string",
+            "example": "gaston.nuevo@test.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "123456"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Login exitoso"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              },
+              "username": {
+                "type": "string",
+                "example": "gaston"
+              },
+              "email": {
+                "type": "string",
+                "example": "gaston.nuevo@test.com"
+              },
+              "phone": {
+                "type": "string",
+                "example": "+56912345678"
+              }
+            }
+          },
+          "token": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        }
+      },
+      "CreateUserDTO": {
+        "type": "object",
+        "required": [
+          "username",
+          "email",
+          "hashedPassword",
+          "phone"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "juan_perez"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "juan@correo.com"
+          },
+          "hashedPassword": {
+            "type": "string",
+            "format": "password",
+            "example": "ClaveSegura123!"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+56998765432"
+          }
+        }
+      },
+      "UpdateUserDTO": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "juan_perez_editado"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "juan_nuevo@correo.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+56911223344"
+          }
+        }
+      },
+      "ParticipantDTO": {
+        "type": "object",
+        "required": [
+          "userId",
+          "percentage"
+        ],
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "ID del usuario participante",
+            "example": 1
+          },
+          "percentage": {
+            "type": "number",
+            "description": "Porcentaje del gasto asumido (ej: 50%)",
+            "example": 50
+          }
+        }
+      },
+      "CreateSpendDTO": {
+        "type": "object",
+        "required": [
+          "name",
+          "amount",
+          "userId",
+          "subcategoryId",
+          "minDayToPayment"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre o concepto del gasto",
+            "example": "Cena de Cumpleaños"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Monto total del gasto",
+            "example": 60000
+          },
+          "userId": {
+            "type": "integer",
+            "description": "ID del creador/dueño del gasto",
+            "example": 1
+          },
+          "subcategoryId": {
+            "type": "integer",
+            "description": "ID de la subcategoría asociada",
+            "example": 3
+          },
+          "minDayToPayment": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31,
+            "description": "Día sugerido de pago (1 al 31)",
+            "example": 15
+          },
+          "maxDayToPayment": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31,
+            "description": "Día límite de pago (opcional)",
+            "example": 20
+          },
+          "totalInstallment": {
+            "type": "integer",
+            "default": 1,
+            "description": "Cantidad total de cuotas",
+            "example": 3
+          },
+          "startPayment": {
+            "type": "string",
+            "description": "Fecha de inicio del pago (YYYY-MM-DD o ISO)",
+            "example": "2026-10-15"
+          },
+          "fkTypeSpend": {
+            "type": "integer",
+            "default": 1,
+            "description": "Tipo de gasto (1: Fijo, 2: Variable, etc.)",
+            "example": 1
+          },
+          "participants": {
+            "type": "array",
+            "description": "Matriz de división del gasto entre usuarios (la suma debe ser 100%)",
+            "items": {
+              "$ref": "#/components/schemas/ParticipantDTO"
+            },
+            "example": [
+              {
+                "userId": 1,
+                "percentage": 50
+              },
+              {
+                "userId": 2,
+                "percentage": 50
+              }
+            ]
+          }
+        }
+      },
+      "UpdateSpendDTO": {
+        "type": "object",
+        "properties": {
+          "spend": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "example": "Cena de Cumpleaños (Actualizado)"
+              },
+              "amount": {
+                "type": "number",
+                "example": 65000
+              },
+              "subcategoryId": {
+                "type": "integer",
+                "example": 3
+              },
+              "minDayToPayment": {
+                "type": "integer",
+                "example": 15
+              },
+              "maxDayToPayment": {
+                "type": "integer",
+                "example": 22
+              }
+            }
+          }
+        }
+      },
+      "UpdateInstallmentUserPaymentDTO": {
+        "type": "object",
+        "properties": {
+          "paymentDone": {
+            "type": "boolean",
+            "description": "Indica si la cuota ya fue pagada",
+            "example": true
+          },
+          "paidAmount": {
+            "type": "number",
+            "description": "Monto pagado (debe ser el total asignado)",
+            "example": 20000
+          },
+          "accepted": {
+            "type": "boolean",
+            "description": "Indica si el deudor aceptó la cuota",
+            "example": true
+          },
+          "userId": {
+            "type": "integer",
+            "description": "ID de un nuevo usuario responsable para reasignar la cuota",
+            "example": 2
+          }
+        }
+      },
+      "CreateFriendRequestDTO": {
+        "type": "object",
+        "required": [
+          "receiverId"
+        ],
+        "properties": {
+          "receiverId": {
+            "type": "integer",
+            "description": "ID del usuario a quien se le envía la solicitud",
+            "example": 2
+          }
+        }
+      },
+      "RespondFriendRequestDTO": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "REJECTED"
+            ],
+            "description": "Decisión del receptor",
+            "example": "ACCEPTED"
+          }
+        }
+      },
+      "CategoryDTO": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Alimentación"
+          },
+          "description": {
+            "type": "string",
+            "example": "Gastos de supermercado, restaurantes y comida"
+          }
+        }
+      },
+      "SubcategoryDTO": {
+        "type": "object",
+        "required": [
+          "name",
+          "categoryId"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Restaurantes"
+          },
+          "categoryId": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "TypeSpendDTO": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Variable"
+          }
+        }
+      }
+    }
+  },
   "paths": {
-    "/users": {
+    "/auth/login": {
       "post": {
-        "summary": "Crear un nuevo usuario",
+        "tags": [
+          "Autenticación"
+        ],
+        "summary": "Iniciar sesión de usuario",
+        "description": "Valida credenciales contra la BD. Si son correctas, genera un JWT y emite una cookie HTTP-Only segura ('token'). Para desarrollo y testing se admite la clave '123456'.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login exitoso con cookie HTTP-Only inyectada",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string",
+                  "example": "token=eyJhbGciOi...; Path=/; HttpOnly; SameSite=Lax"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Identificador o contraseña no proporcionados"
+          },
+          "401": {
+            "description": "Credenciales inválidas"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Autenticación"
+        ],
+        "summary": "Obtener perfil del usuario autenticado (Protegido)",
+        "description": "Verifica la sesión activa mediante la cookie HTTP-Only 'token' o la cabecera 'Authorization: Bearer <token>' y retorna el usuario actual.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuario autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado / Sesión expirada"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Autenticación"
+        ],
+        "summary": "Cerrar sesión de usuario (Protegido)",
+        "description": "Limpia la cookie HTTP-Only de sesión ('token') en el navegador.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sesión cerrada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Listar todos los usuarios",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Crear un nuevo usuario (Registro público)",
         "requestBody": {
           "required": true,
           "content": {
@@ -27,59 +567,20 @@
         },
         "responses": {
           "201": {
-            "description": "Usuario creado exitosamente",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StandardResponse"
-                }
-              }
-            }
+            "description": "Usuario creado exitosamente"
           },
           "400": {
-            "description": "Datos de entrada inválidos o usuario duplicado"
-          }
-        }
-      },
-      "get": {
-        "summary": "Listar todos los usuarios",
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 10
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Lista de usuarios",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StandardResponse"
-                }
-              }
-            }
+            "description": "Usuario, email o teléfono ya registrado"
           }
         }
       }
     },
     "/users/{id}": {
       "get": {
-        "summary": "Obtener detalles de un usuario",
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Obtener usuario por ID",
         "parameters": [
           {
             "name": "id",
@@ -92,7 +593,13 @@
         ],
         "responses": {
           "200": {
-            "description": "Detalles del usuario"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
           },
           "404": {
             "description": "Usuario no encontrado"
@@ -100,6 +607,9 @@
         }
       },
       "put": {
+        "tags": [
+          "Usuarios"
+        ],
         "summary": "Actualizar datos de un usuario",
         "parameters": [
           {
@@ -116,106 +626,76 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "user"
-                ],
-                "properties": {
-                  "user": {
-                    "$ref": "#/components/schemas/UpdateUserDTO"
-                  }
-                }
+                "$ref": "#/components/schemas/UpdateUserDTO"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Usuario actualizado exitosamente"
-          }
-        }
-      }
-    },
-    "/categories": {
-      "post": {
-        "summary": "Crear una nueva categoría",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCategoryDTO"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Categoría creada exitosamente"
-          }
-        }
-      },
-      "get": {
-        "summary": "Listar todas las categorías",
-        "responses": {
-          "200": {
-            "description": "Lista de categorías"
-          }
-        }
-      }
-    },
-    "/subcategories": {
-      "post": {
-        "summary": "Crear una nueva subcategoría",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateSubcategoryDTO"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Subcategoría creada exitosamente"
-          }
-        }
-      },
-      "get": {
-        "summary": "Listar todas las subcategorías",
-        "responses": {
-          "200": {
-            "description": "Lista de subcategorías"
-          }
-        }
-      }
-    },
-    "/categories/{categoryId}/subcategories": {
-      "get": {
-        "summary": "Listar subcategorías asociadas a una categoría",
-        "parameters": [
-          {
-            "name": "categoryId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Lista de subcategorías de la categoría especificada"
+            "description": "Usuario actualizado"
           }
         }
       }
     },
     "/spends": {
+      "get": {
+        "tags": [
+          "Gastos Maestros"
+        ],
+        "summary": "Listar gastos generales (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
-        "summary": "Crear un nuevo gasto o ingreso",
-        "description": "Registra una cuenta (gasto/ingreso). **TRIGGER INTERNO:** Inmediatamente después de guardarse, el servicio calcula y genera las cuotas en `PLANNEDINSTALLMENT` dividiendo el monto total equitativamente. Para cada cuota, pre-genera una fila en `INSTALLMENTUSERPAYMENT` en estado pendiente (`paymentDone: false`) asignada al usuario creador del spend para que le aparezca como cobro.",
+        "tags": [
+          "Gastos Maestros"
+        ],
+        "summary": "Crear un gasto maestro con matriz de cuotas y particiones (Protegido)",
+        "description": "Registra un gasto y genera automáticamente las cuotas ('PlannedInstallments') y pagos por usuario ('InstallmentUserPayments') según el arreglo 'participants' (cuya suma debe ser exactamente 100%).",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -228,32 +708,31 @@
         },
         "responses": {
           "201": {
-            "description": "Spend registrado y cuotas/cargos pendientes generados en base de datos",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StandardResponse"
-                }
-              }
-            }
+            "description": "Gasto y matriz de cuotas creados exitosamente"
           },
           "400": {
-            "description": "Datos de entrada inválidos o error en dependencias de BD (Usuario/Subcategoría no existen)"
-          }
-        }
-      },
-      "get": {
-        "summary": "Listar todos los gastos e ingresos",
-        "responses": {
-          "200": {
-            "description": "Lista general de spends"
+            "description": "Error de validación (ej. sumatoria de porcentajes distinta de 100)"
+          },
+          "401": {
+            "description": "No autorizado"
           }
         }
       }
     },
     "/spends/{id}": {
       "get": {
-        "summary": "Obtener un gasto/ingreso por ID",
+        "tags": [
+          "Gastos Maestros"
+        ],
+        "summary": "Obtener detalle completo de un gasto con sus cuotas y deudores (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
@@ -266,12 +745,26 @@
         ],
         "responses": {
           "200": {
-            "description": "Detalles del spend"
+            "description": "Detalle del gasto con PlannedInstallments e InstallmentUserPayments"
+          },
+          "404": {
+            "description": "Gasto no encontrado"
           }
         }
       },
       "put": {
-        "summary": "Actualizar metadatos de un gasto/ingreso",
+        "tags": [
+          "Gastos Maestros"
+        ],
+        "summary": "Editar configuración de un gasto (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
@@ -287,28 +780,33 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "spend"
-                ],
-                "properties": {
-                  "spend": {
-                    "$ref": "#/components/schemas/UpdateSpendDTO"
-                  }
-                }
+                "$ref": "#/components/schemas/UpdateSpendDTO"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Spend actualizado"
+            "description": "Gasto actualizado"
+          },
+          "400": {
+            "description": "Bloqueado si alguna cuota ya fue pagada"
           }
         }
       },
       "delete": {
-        "summary": "Eliminar un gasto/ingreso y sus cascadas",
-        "description": "Elimina el spend y borra en cascada todas sus cuotas planificadas y cobros de usuarios asociados.",
+        "tags": [
+          "Gastos Maestros"
+        ],
+        "summary": "Eliminar un gasto (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
@@ -321,14 +819,26 @@
         ],
         "responses": {
           "200": {
-            "description": "Spend eliminado con éxito"
+            "description": "Gasto eliminado"
           }
         }
       }
     },
     "/users/{id_user}/spends": {
       "get": {
-        "summary": "Obtener spends de un usuario filtrados por subcategoría",
+        "tags": [
+          "Gastos Maestros"
+        ],
+        "summary": "Consultar gastos asociados a un usuario con filtros avanzados (Protegido)",
+        "description": "Retorna los gastos donde el usuario participa como creador o deudor invitado. Soporta filtros de categoría, fechas, estado y rol.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id_user",
@@ -339,67 +849,374 @@
             }
           },
           {
-            "name": "subcategory",
+            "name": "category",
             "in": "query",
-            "required": true,
-            "description": "ID de la subcategoría para filtrar",
             "schema": {
               "type": "integer"
+            },
+            "description": "Filtrar por ID de Categoría"
+          },
+          {
+            "name": "subcategory",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Filtrar por ID de Subcategoría"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Fecha desde (YYYY-MM-DD)"
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Fecha hasta (YYYY-MM-DD)"
+          },
+          {
+            "name": "done",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filtrar por estado pagado/pendiente"
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "owner",
+                "guest"
+              ]
+            },
+            "description": "Filtrar por rol en el gasto"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Gastos/ingresos filtrados"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/typespends": {
+    "/installmentuserpayments": {
       "get": {
-        "summary": "Listar los tipos de spends base",
-        "description": "Retorna los tipos registrados (como Gasto, Ingreso).",
-        "responses": {
-          "200": {
-            "description": "Lista de tipos"
+        "tags": [
+          "Cuotas y Pagos"
+        ],
+        "summary": "Listar pagos de cuotas asignados (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
           }
-        }
-      }
-    },
-    "/plannedinstallments": {
-      "get": {
-        "summary": "Listar todas las cuotas planificadas del sistema",
-        "responses": {
-          "200": {
-            "description": "Lista de cuotas planificadas"
-          }
-        }
-      }
-    },
-    "/spends/{spendId}/plannedinstallments": {
-      "get": {
-        "summary": "Listar las cuotas específicas generadas por un gasto",
+        ],
         "parameters": [
           {
-            "name": "spendId",
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de pagos"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Cuotas y Pagos"
+        ],
+        "summary": "Registrar pago individual (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Pago registrado"
+          }
+        }
+      }
+    },
+    "/installmentuserpayments/rejected": {
+      "get": {
+        "tags": [
+          "Cuotas y Pagos"
+        ],
+        "summary": "Auditoría de cuotas rechazadas por amigos (Protegido)",
+        "description": "Permite al creador o auditor consultar las cuotas que fueron rechazadas. Si se envía 'asCreator=true', retorna únicamente las cuotas asumidas por el usuario autenticado.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "asCreator",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filtrar cuotas asumidas por el usuario logueado"
+          },
+          {
+            "name": "creatorId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID específico del creador que asume la deuda"
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID específico del deudor que rechazó"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de cuotas rechazadas con información del amigo y del creador"
+          }
+        }
+      }
+    },
+    "/installmentuserpayments/{id}": {
+      "get": {
+        "tags": [
+          "Cuotas y Pagos"
+        ],
+        "summary": "Obtener detalle de una cuota individual (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Lista de cuotas asociadas al spend"
+            "description": "Detalle de la cuota con plannedInstallment, usuario y assumedByUser"
+          },
+          "404": {
+            "description": "Cuota no encontrada"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Cuotas y Pagos"
+        ],
+        "summary": "Actualizar estado de pago o reasignar titularidad de la cuota (Protegido)",
+        "description": "Permite marcar la cuota como pagada (exacta sin remanentes) o reasignar la cuota a otro amigo enviando un 'userId' diferente vía QueryBuilder.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInstallmentUserPaymentDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cuota actualizada"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Cuotas y Pagos"
+        ],
+        "summary": "Eliminar cuota de pago (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cuota eliminada"
+          }
+        }
+      }
+    },
+    "/installmentuserpayments/{id}/reject": {
+      "put": {
+        "tags": [
+          "Cuotas y Pagos"
+        ],
+        "summary": "Rechazar asignación de cuota (Protegido)",
+        "description": "El deudor asignado declina la responsabilidad de la cuota. En una transacción atómica, se marca 'rejected: true', 'accepted: false' y se asigna 'assumedByUserId' al creador del gasto maestro.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cuota rechazada exitosamente y reasignada al creador"
+          },
+          "400": {
+            "description": "No se puede rechazar si ya fue aceptada o rechazada previamente"
+          },
+          "403": {
+            "description": "El usuario no es el titular deudor de la cuota"
+          },
+          "404": {
+            "description": "Cuota no encontrada"
           }
         }
       }
     },
     "/users/{userId}/installmentuserpayments": {
       "get": {
-        "summary": "Obtener los pagos/cargos de cuotas asignados a un usuario",
-        "description": "Permite al frontend listar los cobros de un usuario. Se puede filtrar por estado (pendiente/pagado).",
+        "tags": [
+          "Cuotas y Pagos"
+        ],
+        "summary": "Listar cuotas asociadas a un usuario específico (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -412,34 +1229,47 @@
           {
             "name": "done",
             "in": "query",
-            "required": false,
-            "description": "true para pagados, false para pendientes",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Lista de cobros del usuario"
+            "description": "Lista de cuotas del usuario"
           }
         }
       }
     },
-    "/installmentuserpayments/{idPayment}": {
-      "put": {
-        "summary": "Registrar o autorizar un pago de cuota",
-        "description": "Permite que el usuario marque un cargo como pagado ingresando el monto pagado, o que el administrador lo marque como aceptado.",
-        "parameters": [
+    "/friend-requests": {
+      "post": {
+        "tags": [
+          "Amistades"
+        ],
+        "summary": "Enviar solicitud de amistad (Protegido)",
+        "description": "Envía una solicitud de amistad a otro usuario mediante su 'receiverId'. El emisor se obtiene del usuario autenticado.",
+        "security": [
           {
-            "name": "idPayment",
-            "in": "path",
-            "required": true,
-            "description": "UUID identificador del pago",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
           }
         ],
         "requestBody": {
@@ -447,53 +1277,37 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "installmentUserPayment"
-                ],
-                "properties": {
-                  "installmentUserPayment": {
-                    "$ref": "#/components/schemas/UpdateInstallmentUserPaymentDTO"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Estado de pago actualizado"
-          }
-        }
-      }
-    },
-    "/friend-requests": {
-      "post": {
-        "summary": "Enviar solicitud de amistad",
-        "tags": [
-          "Friendships"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateFriendRequest"
+                "$ref": "#/components/schemas/CreateFriendRequestDTO"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Solicitud enviada"
+            "description": "Solicitud enviada correctamente"
+          },
+          "400": {
+            "description": "Auto-solicitud bloqueada o solicitud duplicada"
+          },
+          "404": {
+            "description": "Receptor no existe"
           }
         }
       }
     },
     "/friend-requests/{id}/respond": {
       "put": {
-        "summary": "Responder a una solicitud",
         "tags": [
-          "Friendships"
+          "Amistades"
+        ],
+        "summary": "Responder a solicitud de amistad (Aceptar o Rechazar) (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
         ],
         "parameters": [
           {
@@ -506,26 +1320,35 @@
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RespondFriendRequest"
+                "$ref": "#/components/schemas/RespondFriendRequestDTO"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Solicitud respondida"
+            "description": "Solicitud respondida. Si es ACCEPTED, se crea el registro de amistad bidireccional."
           }
         }
       }
     },
-    "/friend-requests/users/{userId}/friend-requests": {
+    "/users/{userId}/friend-requests": {
       "get": {
-        "summary": "Ver solicitudes pendientes recibidas",
         "tags": [
-          "Friendships"
+          "Amistades"
+        ],
+        "summary": "Listar solicitudes de amistad recibidas y pendientes (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
         ],
         "parameters": [
           {
@@ -539,16 +1362,86 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de solicitudes"
+            "description": "Solicitudes entrantes pendientes"
+          }
+        }
+      }
+    },
+    "/users/{userId}/sent-friend-requests": {
+      "get": {
+        "tags": [
+          "Amistades"
+        ],
+        "summary": "Listar solicitudes de amistad enviadas (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitudes salientes"
+          }
+        }
+      }
+    },
+    "/friend-requests/{id}": {
+      "delete": {
+        "tags": [
+          "Amistades"
+        ],
+        "summary": "Cancelar solicitud de amistad enviada (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud cancelada correctamente"
           }
         }
       }
     },
     "/users/{userId}/friends": {
       "get": {
-        "summary": "Listar amigos",
         "tags": [
-          "Friendships"
+          "Amistades"
+        ],
+        "summary": "Listar amigos consolidados de un usuario (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
         ],
         "parameters": [
           {
@@ -562,16 +1455,24 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de amistades"
+            "description": "Lista de amistades activas"
           }
         }
       }
     },
     "/users/{userId}/friends/{friendId}": {
       "delete": {
-        "summary": "Eliminar amistad",
         "tags": [
-          "Friendships"
+          "Amistades"
+        ],
+        "summary": "Eliminar una amistad consolidada (Protegido)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
         ],
         "parameters": [
           {
@@ -593,267 +1494,506 @@
         ],
         "responses": {
           "200": {
-            "description": "Amistad eliminada"
+            "description": "Amistad eliminada correctamente"
           }
         }
       }
-    }
-  },
-  "components": {
-    "schemas": {
-      "CreateUserDTO": {
-        "type": "object",
-        "required": [
-          "username",
-          "email",
-          "hashedPassword",
-          "phone"
+    },
+    "/categories": {
+      "get": {
+        "tags": [
+          "Categorías"
         ],
-        "properties": {
-          "username": {
-            "type": "string",
-            "example": "gaston"
+        "summary": "Listar todas las categorías",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
           },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "gaston@test.com"
-          },
-          "hashedPassword": {
-            "type": "string",
-            "example": "miPasswordSegura"
-          },
-          "phone": {
-            "type": "string",
-            "example": "987654321"
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
           }
-        }
-      },
-      "UpdateUserDTO": {
-        "type": "object",
-        "properties": {
-          "username": {
-            "type": "string",
-            "example": "gaston"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "gaston.nuevo@test.com"
-          },
-          "hashedPassword": {
-            "type": "string",
-            "example": "nuevaPassword"
-          },
-          "phone": {
-            "type": "string",
-            "example": "987654321"
-          }
-        }
-      },
-      "CreateCategoryDTO": {
-        "type": "object",
-        "required": [
-          "name"
         ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "Servicios Básicos"
-          },
-          "description": {
-            "type": "string",
-            "example": "Gastos obligatorios"
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
           }
         }
       },
-      "CreateSubcategoryDTO": {
-        "type": "object",
-        "required": [
-          "name",
-          "categoryId"
+      "post": {
+        "tags": [
+          "Categorías"
         ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "Electricidad"
-          },
-          "description": {
-            "type": "string",
-            "example": "Pago mensual del servicio eléctrico"
-          },
-          "categoryId": {
-            "type": "integer",
-            "example": 1
+        "summary": "Crear una nueva categoría",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Categoría creada"
           }
         }
-      },
-      "CreateSpendDTO": {
-        "type": "object",
-        "required": [
-          "name",
-          "amount",
-          "userId",
-          "subcategoryId",
-          "minDayToPayment",
-          "fkTypeSpend"
+      }
+    },
+    "/categories/{id}": {
+      "get": {
+        "tags": [
+          "Categorías"
         ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Título del gasto o ingreso",
-            "example": "Compra de Supermercado"
-          },
-          "amount": {
-            "type": "number",
-            "description": "Monto total",
-            "example": 30000
-          },
-          "userId": {
-            "type": "integer",
-            "description": "ID del usuario creador (debe existir)",
-            "example": 1
-          },
-          "subcategoryId": {
-            "type": "integer",
-            "description": "ID de la subcategoría (debe existir)",
-            "example": 1
-          },
-          "minDayToPayment": {
-            "type": "integer",
-            "description": "Día mínimo/inicio de pago del mes (1 a 31)",
-            "example": 5
-          },
-          "maxDayToPayment": {
-            "type": "integer",
-            "description": "Día máximo/límite de pago (1 a 31)",
-            "example": 10
-          },
-          "totalInstallment": {
-            "type": "integer",
-            "description": "Número total de cuotas",
-            "example": 3
-          },
-          "startPayment": {
-            "type": "string",
-            "format": "date",
-            "description": "Fecha inicial de pago",
-            "example": "2026-08-01"
-          },
-          "fkTypeSpend": {
-            "type": "integer",
-            "description": "ID del Tipo de Spend (1: Ingreso, 2: Gasto)",
-            "example": 2
+        "summary": "Obtener categoría por ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
           }
-        }
-      },
-      "UpdateSpendDTO": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "Compra de Supermercado Modificada"
-          },
-          "amount": {
-            "type": "number",
-            "example": 35000
-          },
-          "userId": {
-            "type": "integer",
-            "example": 1
-          },
-          "subcategoryId": {
-            "type": "integer",
-            "example": 1
-          },
-          "minDayToPayment": {
-            "type": "integer",
-            "example": 5
-          },
-          "maxDayToPayment": {
-            "type": "integer",
-            "example": 10
-          },
-          "totalInstallment": {
-            "type": "integer",
-            "example": 1
-          },
-          "startPayment": {
-            "type": "string",
-            "format": "date",
-            "example": "2026-08-01"
-          },
-          "fkTypeSpend": {
-            "type": "integer",
-            "example": 2
-          }
-        }
-      },
-      "UpdateInstallmentUserPaymentDTO": {
-        "type": "object",
-        "properties": {
-          "paymentDone": {
-            "type": "boolean",
-            "description": "Indica si el usuario completó el pago",
-            "example": true
-          },
-          "paidAmount": {
-            "type": "number",
-            "description": "Monto efectivamente pagado por el usuario",
-            "example": 10000
-          },
-          "accepted": {
-            "type": "boolean",
-            "description": "Indica si el administrador aprobó/concilió la transacción",
-            "example": false
-          }
-        }
-      },
-      "StandardResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "example": true
-          },
-          "code_message": {
-            "type": "string",
-            "example": "ABC"
-          },
-          "len": {
-            "type": "integer",
-            "example": 1
-          },
-          "data": {
-            "type": "object"
-          }
-        }
-      },
-      "CreateFriendRequest": {
-        "type": "object",
-        "required": [
-          "receiverId"
         ],
-        "properties": {
-          "receiverId": {
-            "type": "integer",
-            "example": 2
+        "responses": {
+          "200": {
+            "description": "Categoría encontrada"
+          },
+          "404": {
+            "description": "No encontrada"
           }
         }
       },
-      "RespondFriendRequest": {
-        "type": "object",
-        "required": [
-          "status"
+      "put": {
+        "tags": [
+          "Categorías"
         ],
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": [
-              "ACCEPTED",
-              "REJECTED"
-            ],
-            "example": "ACCEPTED"
+        "summary": "Actualizar categoría",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Categoría actualizada"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Categorías"
+        ],
+        "summary": "Eliminar categoría",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Categoría eliminada"
+          }
+        }
+      }
+    },
+    "/categories/{categoryId}/subcategories": {
+      "get": {
+        "tags": [
+          "Subcategorías"
+        ],
+        "summary": "Listar subcategorías asociadas a una categoría específica",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de subcategorías de la categoría"
+          }
+        }
+      }
+    },
+    "/subcategories": {
+      "get": {
+        "tags": [
+          "Subcategorías"
+        ],
+        "summary": "Listar todas las subcategorías",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de subcategorías"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Subcategorías"
+        ],
+        "summary": "Crear una nueva subcategoría",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubcategoryDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Subcategoría creada"
+          }
+        }
+      }
+    },
+    "/subcategories/{id}": {
+      "get": {
+        "tags": [
+          "Subcategorías"
+        ],
+        "summary": "Obtener subcategoría por ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subcategoría encontrada"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Subcategorías"
+        ],
+        "summary": "Actualizar subcategoría",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubcategoryDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subcategoría actualizada"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Subcategorías"
+        ],
+        "summary": "Eliminar subcategoría",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subcategoría eliminada"
+          }
+        }
+      }
+    },
+    "/typespends": {
+      "get": {
+        "tags": [
+          "Tipos de Gasto"
+        ],
+        "summary": "Listar periodicidad / tipos de gasto (Fijo, Variable, Cuotas)",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de tipos de gasto"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Tipos de Gasto"
+        ],
+        "summary": "Crear un nuevo tipo de gasto",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TypeSpendDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tipo de gasto creado"
+          }
+        }
+      }
+    },
+    "/typespends/{id}": {
+      "get": {
+        "tags": [
+          "Tipos de Gasto"
+        ],
+        "summary": "Obtener tipo de gasto por ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tipo de gasto encontrado"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Tipos de Gasto"
+        ],
+        "summary": "Actualizar tipo de gasto",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TypeSpendDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tipo de gasto actualizado"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Tipos de Gasto"
+        ],
+        "summary": "Eliminar tipo de gasto",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tipo de gasto eliminado"
+          }
+        }
+      }
+    },
+    "/plannedinstallments": {
+      "get": {
+        "tags": [
+          "Cuotas Planificadas"
+        ],
+        "summary": "Listar cuotas planificadas globales",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de cuotas planificadas"
+          }
+        }
+      }
+    },
+    "/spends/{spendId}/plannedinstallments": {
+      "get": {
+        "tags": [
+          "Cuotas Planificadas"
+        ],
+        "summary": "Listar cuotas planificadas de un gasto específico",
+        "parameters": [
+          {
+            "name": "spendId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cuotas del gasto"
           }
         }
       }

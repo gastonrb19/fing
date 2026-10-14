@@ -72,13 +72,23 @@ export class SpendService {
     }
 
     
-    async findByUser(userId: number, pagination: Pagination, filters?: { categoryId?: number, subcategoryId?: number, from?: string, until?: string, done?: boolean }): Promise<SpendEntity[]> {
+    async findByUser(userId: number, pagination: Pagination, filters?: { categoryId?: number, subcategoryId?: number, from?: string, until?: string, done?: boolean, role?: string }): Promise<SpendEntity[]> {
         const qb = myDataSource.getRepository(SpendEntity).createQueryBuilder("spend")
             .leftJoinAndSelect("spend.user", "user")
             .leftJoinAndSelect("spend.subcategory", "subcategory")
             .leftJoinAndSelect("subcategory.category", "category")
-            .leftJoinAndSelect("spend.type", "type")
-            .where("spend.userId = :userId", { userId });
+            .leftJoinAndSelect("spend.type", "type");
+
+        const role = filters?.role || 'all';
+        if (role === 'owner') {
+            qb.where("spend.userId = :userId", { userId });
+        } else if (role === 'guest') {
+            qb.where("spend.userId != :userId", { userId })
+              .andWhere("EXISTS (SELECT 1 FROM \"INSTALLMENTUSERPAYMENT\" iup INNER JOIN \"PLANNEDINSTALLMENT\" spi ON spi.\"idPI\" = iup.\"plannedInstallmentId\" WHERE spi.\"spendId\" = spend.id AND iup.\"userId\" = :userId)", { userId });
+        } else {
+            // 'all': creados por el usuario o donde participa como deudor asignado
+            qb.where("(spend.userId = :userId OR EXISTS (SELECT 1 FROM \"INSTALLMENTUSERPAYMENT\" iup INNER JOIN \"PLANNEDINSTALLMENT\" spi ON spi.\"idPI\" = iup.\"plannedInstallmentId\" WHERE spi.\"spendId\" = spend.id AND iup.\"userId\" = :userId))", { userId });
+        }
 
         if (filters?.categoryId) {
             qb.andWhere("category.id = :categoryId", { categoryId: filters.categoryId });
@@ -96,10 +106,11 @@ export class SpendService {
         // Filtro complejo por estado de pago cruzando con PlannedInstallment y InstallmentUserPayment
         if (filters?.done !== undefined) {
             if (filters.done === true) {
-                // Saldados: NO existe ninguna cuota pendiente (paymentDone = false) para este gasto y este usuario
+                // Saldados: Tiene cuotas registradas para este usuario y NINGUNA cuota pendiente
+                qb.andWhere("EXISTS (SELECT 1 FROM \"INSTALLMENTUSERPAYMENT\" iup1 INNER JOIN \"PLANNEDINSTALLMENT\" spi1 ON spi1.\"idPI\" = iup1.\"plannedInstallmentId\" WHERE spi1.\"spendId\" = spend.id AND iup1.\"userId\" = :userId)", { userId });
                 qb.andWhere("NOT EXISTS (SELECT 1 FROM \"INSTALLMENTUSERPAYMENT\" iup INNER JOIN \"PLANNEDINSTALLMENT\" spi ON spi.\"idPI\" = iup.\"plannedInstallmentId\" WHERE spi.\"spendId\" = spend.id AND iup.\"userId\" = :userId AND iup.\"paymentDone\" = false)", { userId });
             } else {
-                // Pendientes: Existe al menos una cuota pendiente
+                // Pendientes: Existe al menos una cuota pendiente para este usuario
                 qb.andWhere("EXISTS (SELECT 1 FROM \"INSTALLMENTUSERPAYMENT\" iup INNER JOIN \"PLANNEDINSTALLMENT\" spi ON spi.\"idPI\" = iup.\"plannedInstallmentId\" WHERE spi.\"spendId\" = spend.id AND iup.\"userId\" = :userId AND iup.\"paymentDone\" = false)", { userId });
             }
         }
@@ -112,22 +123,36 @@ export class SpendService {
 
         if (spends.length > 0) {
             const spendIds = spends.map(s => s.id);
-            const counts = await myDataSource.getRepository("INSTALLMENTUSERPAYMENT")
+            const userPaymentsInfo = await myDataSource.getRepository("INSTALLMENTUSERPAYMENT")
                 .createQueryBuilder("iup")
                 .innerJoin("PLANNEDINSTALLMENT", "pi", "pi.\"idPI\" = iup.\"plannedInstallmentId\"")
                 .select("pi.\"spendId\"", "spendId")
-                .addSelect("COUNT(iup.\"idPayment\")", "count")
+                .addSelect("COUNT(iup.\"idPayment\")", "totalInstallments")
+                .addSelect("SUM(CASE WHEN iup.\"paymentDone\" = true THEN 1 ELSE 0 END)", "paidInstallments")
+                .addSelect("SUM(iup.\"assignedAmount\")", "assignedAmount")
+                .addSelect("SUM(iup.\"paidAmount\")", "paidAmount")
                 .where("pi.\"spendId\" IN (:...spendIds)", { spendIds })
                 .andWhere("iup.\"userId\" = :userId", { userId })
-                .andWhere("iup.\"paymentDone\" = true")
                 .groupBy("pi.\"spendId\"")
                 .getRawMany();
 
-            const countMap = new Map();
-            counts.forEach(c => countMap.set(c.spendId, Number(c.count)));
+            const infoMap = new Map();
+            userPaymentsInfo.forEach(item => {
+                infoMap.set(item.spendId, {
+                    totalInstallments: Number(item.totalInstallments),
+                    paidInstallments: Number(item.paidInstallments),
+                    assignedAmount: Number(item.assignedAmount) || 0,
+                    paidAmount: Number(item.paidAmount) || 0,
+                });
+            });
 
             spends.forEach(spend => {
-                (spend as any).paidInstallments = countMap.get(spend.id) || 0;
+                const info = infoMap.get(spend.id);
+                const isOwner = spend.user?.id === userId;
+                (spend as any).isOwner = isOwner;
+                (spend as any).paidInstallments = info ? info.paidInstallments : 0;
+                (spend as any).userTotalInstallments = info ? info.totalInstallments : spend.totalInstallment;
+                (spend as any).assignedAmount = info ? info.assignedAmount : (isOwner ? spend.amount : 0);
             });
         }
 
@@ -151,9 +176,10 @@ export class SpendService {
     async create(dto: createSpendDTO): Promise<SpendEntity> {
         const user = await this.userService.findOneById(dto.userId);
         const subcategory = await this.subcategoryService.findOneById(dto.subcategoryId);
-        const typeSpend = await myDataSource.getRepository(TypeSpendEntity).findOneBy({ id: dto.fkTypeSpend });
+        const typeSpendId = dto.fkTypeSpend || 1;
+        const typeSpend = await myDataSource.getRepository(TypeSpendEntity).findOneBy({ id: typeSpendId });
         if(!typeSpend){
-            throw new NotFoundError('TypeSpend', dto.fkTypeSpend);
+            throw new NotFoundError('TypeSpend', typeSpendId);
         }
 
         let splits = dto.participants;

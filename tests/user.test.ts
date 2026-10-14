@@ -69,7 +69,7 @@ test("UserService CRUD operations", async () => {
     // 4. Test findOneById non-existent throws
     await assert.rejects(async () => {
         await userService.findOneById(999);
-    }, /not found/i);
+    }, /no fue encontrado|not found/i);
 
     console.log("¡Prueba de UserService aprobada con éxito!");
 });

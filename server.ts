@@ -4,6 +4,7 @@ import routes from './src/index.js';
 import { logError, handleError } from './src/middlewares/errorHandler.js';
 import { testConnection } from './src/config/connection.js';
 
+import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -16,9 +17,13 @@ const app = express();
 
 const PORT = process.env.PORT || 8000;
 
-// Configuración de CORS para permitir solicitudes del Frontend
-app.use(cors());
+// Configuración de CORS para permitir cookies y credenciales desde el Frontend
+app.use(cors({
+  origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+  credentials: true,
+}));
 
+app.use(cookieParser());
 app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 app.use(routes);

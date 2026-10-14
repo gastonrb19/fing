@@ -122,5 +122,92 @@ test("SpendService.create generates correct planned installments and user paymen
         assert.strictEqual(payment.plannedInstallment.idPI, `123-${index + 1}`);
     });
 
-    console.log("¡Prueba de SpendService ejecutada y aprobada con éxito!");
+    console.log("¡Prueba de SpendService.create aprobada con éxito!");
+});
+
+test("SpendService.findByUser filters by role and enriches guest spends with assigned debt", async () => {
+    const mockUserService: any = {};
+    const mockSubcategoryService: any = {};
+    const spendService = new SpendService(mockUserService, mockSubcategoryService);
+
+    // Mock Spend #14 created by user 2 (AmigoDePrueba), where user 3 (TercerAmigo) is participant
+    const spend14 = new SpendEntity();
+    spend14.id = 14;
+    spend14.name = "Cena Compartida";
+    spend14.amount = 107800;
+    spend14.totalInstallment = 1;
+    spend14.user = { id: 2, username: "AmigoDePrueba" } as User;
+
+    let capturedWhere = "";
+    let capturedAndWhere: string[] = [];
+
+    const mockSpendQB: any = {
+        leftJoinAndSelect: () => mockSpendQB,
+        where: (sql: string, params?: any) => {
+            capturedWhere = sql;
+            return mockSpendQB;
+        },
+        andWhere: (sql: string, params?: any) => {
+            capturedAndWhere.push(sql);
+            return mockSpendQB;
+        },
+        skip: () => mockSpendQB,
+        take: () => mockSpendQB,
+        orderBy: () => mockSpendQB,
+        getMany: async () => [spend14]
+    };
+
+    const mockIupQB: any = {
+        innerJoin: () => mockIupQB,
+        select: () => mockIupQB,
+        addSelect: () => mockIupQB,
+        where: () => mockIupQB,
+        andWhere: () => mockIupQB,
+        groupBy: () => mockIupQB,
+        getRawMany: async () => [
+            {
+                spendId: 14,
+                totalInstallments: "1",
+                paidInstallments: "0",
+                assignedAmount: "53900",
+                paidAmount: "0"
+            }
+        ]
+    };
+
+    mock.method(myDataSource, "getRepository", (entity: any) => {
+        if (entity === SpendEntity) {
+            return { createQueryBuilder: () => mockSpendQB };
+        }
+        if (entity === "INSTALLMENTUSERPAYMENT" || entity === InstallmentUserPayment) {
+            return { createQueryBuilder: () => mockIupQB };
+        }
+        return {};
+    });
+
+    // 1. Role: 'all' (default)
+    capturedWhere = "";
+    capturedAndWhere = [];
+    const resultsAll = await spendService.findByUser(3, { limit: 10, offset: 0 });
+    assert.strictEqual(resultsAll.length, 1);
+    assert.ok(capturedWhere.includes("spend.userId = :userId OR EXISTS"));
+    assert.strictEqual((resultsAll[0] as any).isOwner, false);
+    assert.strictEqual((resultsAll[0] as any).assignedAmount, 53900);
+    assert.strictEqual((resultsAll[0] as any).paidInstallments, 0);
+
+    // 2. Role: 'guest'
+    capturedWhere = "";
+    capturedAndWhere = [];
+    const resultsGuest = await spendService.findByUser(3, { limit: 10, offset: 0 }, { role: "guest" });
+    assert.strictEqual(resultsGuest.length, 1);
+    assert.strictEqual(capturedWhere, "spend.userId != :userId");
+    assert.ok(capturedAndWhere.some(w => w.includes("EXISTS (SELECT 1 FROM \"INSTALLMENTUSERPAYMENT\"")));
+
+    // 3. Role: 'owner'
+    capturedWhere = "";
+    capturedAndWhere = [];
+    const resultsOwner = await spendService.findByUser(3, { limit: 10, offset: 0 }, { role: "owner" });
+    assert.strictEqual(capturedWhere, "spend.userId = :userId");
+
+    console.log("¡Prueba de SpendService.findByUser (roles y gastos asignados) aprobada con éxito!");
 });

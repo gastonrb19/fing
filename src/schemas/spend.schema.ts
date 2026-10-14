@@ -6,6 +6,7 @@ export const participantSchema = z.object({
 });
 
 export const createSpendSchema = z.object({
+    currentUser: z.number().int().positive().optional(),
     name: z.string().min(1).max(255),
     amount: z.number().positive(),
     userId: z.number().int().positive(),
@@ -14,7 +15,7 @@ export const createSpendSchema = z.object({
     maxDayToPayment: z.number().int().min(1).max(31).optional(),
     totalInstallment: z.number().int().positive().optional(),
     startPayment: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
-    fkTypeSpend: z.number().int().positive(),
+    fkTypeSpend: z.number().int().positive().default(1).optional(),
     participants: z.array(participantSchema).optional()
 }).refine(data => {
     if (data.participants && data.participants.length > 0) {
@@ -29,6 +30,7 @@ export const createSpendSchema = z.object({
 });
 
 export const updateSpendSchema = z.object({
+    currentUser: z.number().int().positive().optional(),
     spend: z.object({
         name: z.string().min(1).max(255).optional(),
         amount: z.number().positive().optional(),
