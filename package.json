@@ -12,6 +12,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "npx tsx --test tests/*.test.ts",
+    "test:db": "npx tsx scripts/test-db-connection.ts",
+    "seed": "npx tsx scripts/seed.ts",
     "prepare": "husky"
   },
   "dependencies": {

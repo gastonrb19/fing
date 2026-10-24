@@ -1,3 +1,11 @@
+if (typeof process.loadEnvFile === 'function') {
+  try {
+    process.loadEnvFile();
+  } catch {
+    // Ignore if .env is missing
+  }
+}
+
 import express from 'express';
 import cors from 'cors';
 import routes from './src/index.js';
@@ -9,6 +17,7 @@ import swaggerUi from 'swagger-ui-express';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+//Swagger Documentation
 const openapiSpec = JSON.parse(
   readFileSync(join(process.cwd(), './src/config/openapi.json'), 'utf8')
 );

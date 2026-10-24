@@ -56,6 +56,12 @@ export class UserService {
     if(!user){
       throw new NotFoundError("User", id);
     }
+    if (updateUserDTO.hashedPassword && !updateUserDTO.hashedPassword.startsWith("$2")) {
+      const hashedPassword = await hashPassword(updateUserDTO.hashedPassword);
+      if (hashedPassword) {
+        updateUserDTO.hashedPassword = hashedPassword;
+      }
+    }
     Object.assign(user, updateUserDTO);
     return await myDataSource.getRepository(User).save(user);
   }

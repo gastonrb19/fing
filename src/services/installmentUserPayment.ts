@@ -93,7 +93,6 @@ export class InstallmentUserPaymentService {
             updateFields.accepted = false;
             updateFields.rejected = false;
         }
-
         if (Object.keys(updateFields).length > 0) {
             await myDataSource.createQueryBuilder()
                 .update(InstallmentUserPayment)

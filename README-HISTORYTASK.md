@@ -11,3 +11,6 @@
 - [x] **Lógica de Negocio (Trigger):** Implementar lógica en `GastoService` que detecte categoría 'Deuda' y cree automáticamente el registro correspondiente en la tabla/entidad `Debt`. (Reemplazado por Cuotas y Tipo de Gasto) (Fecha: 2026-08-22)
 - [x] Agregar servicio de amistad para aceptar cuotas de pagos asociados a otros usuarios en el sistema (100%) (Fecha: 2026-10-03)
 - [x] Refactorizar Auth: Implementar Middleware JWT para extraer el ID del usuario (`req.user.id`) de las cookies/headers de autorización, protegiendo las rutas según el usuario en lugar de recibir `currentUser` en el payload. (Fecha: 2026-10-14)
+- [x] **Script de Seeder de Datos Iniciales (`npm run seed`):** Crear script idempotente para poblar en la base de datos de Supabase los datos necesarios para operar: (Fecha: 2026-10-24)
+- [x] **Conexión a PostgreSQL Gratuito en SUPABASE:** (Fecha: 2026-10-24)
+- [x] **Automatización de Migraciones:** Configurar script/entrypoint para ejecutar migraciones pendientes de TypeORM antes de inicializar el servidor. (100%) (Fecha: 2026-10-24)
