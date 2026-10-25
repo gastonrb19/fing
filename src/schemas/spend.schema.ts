@@ -16,6 +16,7 @@ export const createSpendSchema = z.object({
     totalInstallment: z.number().int().positive().optional(),
     startPayment: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
     fkTypeSpend: z.number().int().positive().default(1).optional(),
+    isPaid: z.boolean().optional(),
     participants: z.array(participantSchema).optional()
 }).refine(data => {
     if (data.participants && data.participants.length > 0) {
@@ -27,6 +28,15 @@ export const createSpendSchema = z.object({
 }, {
     message: "La sumatoria de los porcentajes de los participantes debe ser exactamente 100",
     path: ["participants"]
+}).refine(data => {
+    if (data.isPaid) {
+        if (!data.participants || data.participants.length === 0) return true;
+        return data.participants.length === 1 && data.participants[0]?.userId === data.userId;
+    }
+    return true;
+}, {
+    message: "Solo se puede marcar como pagado inmediatamente si el creador es el único participante implicado",
+    path: ["isPaid"]
 });
 
 export const updateSpendSchema = z.object({

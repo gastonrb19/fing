@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, DeleteDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { SubcategoryEntity } from "./SubcategoryEntity.js";
 
 
@@ -12,6 +12,9 @@ export class CategoryEntity {
 
     @Column({ type: "varchar", nullable: true })
     description: string;
+
+    @DeleteDateColumn({ type: "timestamp", nullable: true })
+    deletedAt?: Date;
 
     @OneToMany(() => SubcategoryEntity, (subcategory) => subcategory.category)
     subcategories: SubcategoryEntity[];

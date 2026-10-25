@@ -35,6 +35,11 @@ test("SubcategoryService CRUD operations", async () => {
                 return null;
             },
             findOne: async (options: any) => {
+                if (options.where?.name === "existing_sub") {
+                    const s = new SubcategoryEntity();
+                    s.name = "existing_sub";
+                    return s;
+                }
                 const id = options.where?.id;
                 if (id === 10) {
                     const s = new SubcategoryEntity();
@@ -54,7 +59,7 @@ test("SubcategoryService CRUD operations", async () => {
                 savedSubcategories.push(sub);
                 return sub;
             },
-            remove: async (sub: SubcategoryEntity) => {
+            softRemove: async (sub: SubcategoryEntity) => {
                 const idx = savedSubcategories.findIndex(s => s.id === sub.id);
                 if (idx !== -1) {
                     savedSubcategories.splice(idx, 1);

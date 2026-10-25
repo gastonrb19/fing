@@ -51,16 +51,7 @@ export class SubcategoryService {
   async create(
     createSubcategoryDTO: createSubcategoryDTO,
   ): Promise<SubcategoryEntity> {
-    //Check if already exist by unique values;
-    const subcategoryName = await myDataSource
-      .getRepository(SubcategoryEntity)
-      .findOneBy({ name: createSubcategoryDTO.name });
-    if (subcategoryName) {
-      throw new GeneralError(
-        `Subcategory with name ${createSubcategoryDTO.name} already exist`,
-        400,
-      );
-    }
+    const repo = myDataSource.getRepository(SubcategoryEntity);
 
     //Check that the parent category exists;
     const category = await myDataSource
@@ -70,13 +61,30 @@ export class SubcategoryService {
       throw new NotFoundError("Category", createSubcategoryDTO.categoryId);
     }
 
+    //Check if already exist by unique values (including soft-deleted rows);
+    const existing = await repo.findOne({
+      where: { name: createSubcategoryDTO.name },
+      withDeleted: true,
+    });
+    if (existing) {
+      if (!existing.deletedAt) {
+        throw new GeneralError(
+          `Subcategory with name ${createSubcategoryDTO.name} already exist`,
+          400,
+        );
+      }
+      await repo.restore(existing.id);
+      existing.description = createSubcategoryDTO.description as string;
+      existing.category = category;
+      delete existing.deletedAt;
+      return await repo.save(existing);
+    }
+
     const newSubcategory = new SubcategoryEntity();
     newSubcategory.name = createSubcategoryDTO.name;
     newSubcategory.description = createSubcategoryDTO.description as string;
     newSubcategory.category = category;
-    return await myDataSource
-      .getRepository(SubcategoryEntity)
-      .save(newSubcategory);
+    return await repo.save(newSubcategory);
   }
 
   async update(
@@ -126,6 +134,6 @@ export class SubcategoryService {
 
   async delete(id: number): Promise<void> {
     const subcategory = await this.findOneById(id);
-    await myDataSource.getRepository(SubcategoryEntity).remove(subcategory);
+    await myDataSource.getRepository(SubcategoryEntity).softRemove(subcategory);
   }
 }

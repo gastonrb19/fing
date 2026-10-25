@@ -23,6 +23,14 @@ test("CategoryService CRUD operations", async () => {
                 }
                 return null;
             },
+            findOne: async (options: any) => {
+                if (options.where?.name === "existing_category") {
+                    const c = new CategoryEntity();
+                    c.name = "existing_category";
+                    return c;
+                }
+                return null;
+            },
             find: async () => {
                 return savedCategories;
             },
@@ -33,7 +41,8 @@ test("CategoryService CRUD operations", async () => {
                 savedCategories.push(cat);
                 return cat;
             },
-            remove: async (cat: CategoryEntity) => {
+            softDelete: async () => ({ affected: 1 }),
+            softRemove: async (cat: CategoryEntity) => {
                 const idx = savedCategories.findIndex(c => c.id === cat.id);
                 if (idx !== -1) {
                     savedCategories.splice(idx, 1);

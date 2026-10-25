@@ -47,6 +47,7 @@ export class SpendService {
     async findOneById(id: number): Promise<SpendEntity> {
         const getSpend = await myDataSource.getRepository(SpendEntity).findOne({
             where: { id },
+            withDeleted: true,
             relations: { 
                 user: true, 
                 subcategory: {
@@ -74,6 +75,7 @@ export class SpendService {
     
     async findByUser(userId: number, pagination: Pagination, filters?: { categoryId?: number, subcategoryId?: number, from?: string, until?: string, done?: boolean, role?: string }): Promise<SpendEntity[]> {
         const qb = myDataSource.getRepository(SpendEntity).createQueryBuilder("spend")
+            .withDeleted()
             .leftJoinAndSelect("spend.user", "user")
             .leftJoinAndSelect("spend.subcategory", "subcategory")
             .leftJoinAndSelect("subcategory.category", "category")
@@ -153,6 +155,7 @@ export class SpendService {
                 (spend as any).paidInstallments = info ? info.paidInstallments : 0;
                 (spend as any).userTotalInstallments = info ? info.totalInstallments : spend.totalInstallment;
                 (spend as any).assignedAmount = info ? info.assignedAmount : (isOwner ? spend.amount : 0);
+                (spend as any).paidAmount = info ? info.paidAmount : 0;
             });
         }
 
@@ -185,6 +188,15 @@ export class SpendService {
         let splits = dto.participants;
         if (!splits || splits.length === 0) {
             splits = [{ userId: dto.userId, percentage: 100 }];
+        }
+
+        const isOnlyCreator = splits.length === 1 && splits[0]?.userId === dto.userId;
+        if (dto.isPaid && !isOnlyCreator) {
+            throw new GeneralError(
+                "Solo se puede marcar como pagado inmediatamente cuando únicamente el creador está implicado en el gasto.",
+                400,
+                "BAD_REQUEST"
+            );
         }
 
         // 1. Validar que todos los participantes existan y sean amigos del creador (si no son él mismo)
@@ -246,15 +258,17 @@ export class SpendService {
                 for (const split of splits) {
                     const payment = new InstallmentUserPayment();
                     payment.idPayment = crypto.randomUUID();
-                    payment.accepted = false;
+                    const isCreatorSplit = split.userId === dto.userId;
+                    const markAsPaid = Boolean(dto.isPaid && isOnlyCreator && isCreatorSplit);
+
+                    payment.accepted = isCreatorSplit || markAsPaid;
                     
                     // Cálculo de asignación exacta
                     const userAssignedAmount = Math.round((amountPerInstallment * (split.percentage / 100)) * 100) / 100;
                     
                     payment.assignedAmount = userAssignedAmount;
-                    payment.paidAmount = 0;
-                    payment.paymentDone = false;
-                        payment.paidAmount = 0;
+                    payment.paymentDone = markAsPaid;
+                    payment.paidAmount = markAsPaid ? userAssignedAmount : 0;
                     payment.plannedInstallment = savedPI;
                     payment.user = participantUsers.get(split.userId)!;
 

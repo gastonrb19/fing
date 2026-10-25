@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, DeleteDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { CategoryEntity } from "./CategoryEntity.js";
 import { SpendEntity } from "./SpendEntity.js";
 
@@ -13,6 +13,9 @@ export class SubcategoryEntity {
 
     @Column({ type: "varchar", nullable: true })
     description: string;
+
+    @DeleteDateColumn({ type: "timestamp", nullable: true })
+    deletedAt?: Date;
 
     @ManyToOne(() => CategoryEntity, (category) => category.subcategories, { nullable: false, onDelete: "CASCADE" })
     @JoinColumn({ name: "categoryId" })

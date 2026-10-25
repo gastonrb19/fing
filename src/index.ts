@@ -9,6 +9,8 @@ import installmentUserPaymentRoutes from "./routes/installmentUserPayment_routes
 import friendRequestRoutes from "./routes/friendRequest_routes.js";
 import friendshipRoutes from "./routes/friendship_routes.js";
 import authRoutes from "./routes/auth_routes.js";
+import categoryIncomeRoutes from "./routes/categoryIncome_routes.js";
+import incomeRoutes from "./routes/income_routes.js";
 
 const routes = Router();
 
@@ -22,5 +24,7 @@ routes.use(plannedInstallmentRoutes);
 routes.use(installmentUserPaymentRoutes);
 routes.use(friendRequestRoutes);
 routes.use(friendshipRoutes);
+routes.use(categoryIncomeRoutes);
+routes.use(incomeRoutes);
 
 export default routes;

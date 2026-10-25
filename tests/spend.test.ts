@@ -116,7 +116,7 @@ test("SpendService.create generates correct planned installments and user paymen
     userPayments.forEach((payment, index) => {
         assert.ok(payment.idPayment); // Debe tener UUID generado
         assert.strictEqual(payment.paymentDone, false);
-        assert.strictEqual(payment.accepted, false);
+        assert.strictEqual(payment.accepted, true);
         assert.strictEqual(payment.paidAmount, 0);
         assert.strictEqual(payment.user.id, 1);
         assert.strictEqual(payment.plannedInstallment.idPI, `123-${index + 1}`);
@@ -142,6 +142,7 @@ test("SpendService.findByUser filters by role and enriches guest spends with ass
     let capturedAndWhere: string[] = [];
 
     const mockSpendQB: any = {
+        withDeleted: () => mockSpendQB,
         leftJoinAndSelect: () => mockSpendQB,
         where: (sql: string, params?: any) => {
             capturedWhere = sql;
