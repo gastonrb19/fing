@@ -29,3 +29,13 @@
 ## 8. Sintaxis de Relaciones en TypeORM
 - **Cero arrays de strings:** TypeORM v1+ eliminó el soporte para `relations: ["nombre"]`. Utilizar esto provoca un Crash / Error 500 fatal.
 - **Uso obligatorio de Objetos:** Las relaciones en `find` o `findOne` deben definirse SIEMPRE usando sintaxis de objeto: `relations: { user: true, plannedInstallment: true }`.
+
+## 9. Relaciones con `USERS`, Soft Delete y Fechas SQL
+- **Reutilización de `USERS`:** Toda entidad vinculada a un usuario debe relacionarse con `User` (`src/models/UserEntity.ts`, tabla `USERS`); nunca crear tablas de usuarios paralelas, y mantener `select: false` en columnas sensibles como `hashedPassword`.
+- **Soft Delete en Catálogos (`@DeleteDateColumn`):** Los catálogos (`CATEGORY`, `SUBCATEGORY`, `CATEGORY_INCOME`) usan `softRemove()`. Al consultar movimientos históricos (`SpendService`, `IncomeService`), incluye siempre `.withDeleted()` / `withDeleted: true` para no ocultar registros antiguos.
+- **Fechas `YYYY-MM-DD` sin desfase UTC:** En columnas `type: "date"`, normaliza strings conservando `"YYYY-MM-DD"` (`val.split("T")[0]`) en vez de `new Date("YYYY-MM-DD")` para evitar que el cambio de zona horaria reste un día.
+
+## 10. Seguridad Productiva, Cookies y Tests
+- **Rutas Protegidas y Propiedad (`requireAuth`):** Todo endpoint nuevo (incluyendo alta de usuarios `POST /users`) debe exigir `requireAuth` y validar que el recurso pertenezca o involucre a `req.user.id`.
+- **Cookies Adaptativas HTTP/HTTPS:** Al emitir cookies de sesión, condiciona `secure` a `req.secure || req.headers["x-forwarded-proto"] === "https"` (no solo a `NODE_ENV === "production"`) para soportar despliegues HTTP same-origin tras Nginx en AWS EC2.
+- **Sincronización de Mocks y Build:** Al modificar consultas TypeORM (`findOne`, `.withDeleted()`) o reglas de auth, actualiza los mocks en `tests/*.test.ts` y verifica siempre `npm test` y `npm run build`.
