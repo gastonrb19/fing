@@ -6,6 +6,7 @@ import {
     ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
+    type Relation,
 } from "typeorm";
 import { User } from "./UserEntity.js";
 import { CategoryIncomeEntity } from "./CategoryIncomeEntity.js";
@@ -38,12 +39,12 @@ export class IncomeEntity {
 
     @ManyToOne(() => User, (user) => user.incomes, { nullable: false, onDelete: "CASCADE" })
     @JoinColumn({ name: "userId" })
-    user: User;
+    user: Relation<User>;
 
     @ManyToOne(() => CategoryIncomeEntity, (categoryIncome) => categoryIncome.incomes, {
         nullable: false,
         onDelete: "CASCADE",
     })
     @JoinColumn({ name: "categoryIncomeId" })
-    categoryIncome: CategoryIncomeEntity;
+    categoryIncome: Relation<CategoryIncomeEntity>;
 }

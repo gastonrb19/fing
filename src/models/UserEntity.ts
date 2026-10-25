@@ -1,4 +1,4 @@
-import {Entity, Column, OneToMany, PrimaryGeneratedColumn} from "typeorm";
+import {Entity, Column, OneToMany, PrimaryGeneratedColumn, type Relation} from "typeorm";
 import { SpendEntity } from "./SpendEntity.js";
 import { InstallmentUserPayment } from "./InstallmentUserPayment.js";
 import { IncomeEntity } from "./IncomeEntity.js";
@@ -21,11 +21,11 @@ export class User {
 	phone: string;
 
 	@OneToMany(() => SpendEntity, (spend) => spend.user)
-	spends : SpendEntity[];
+	spends : Relation<SpendEntity[]>;
 
 	@OneToMany(() => InstallmentUserPayment, (iup) => iup.user)	
-	installmentUserPayments: InstallmentUserPayment[];
+	installmentUserPayments: Relation<InstallmentUserPayment[]>;
 
 	@OneToMany(() => IncomeEntity, (income) => income.user)
-	incomes: IncomeEntity[];
+	incomes: Relation<IncomeEntity[]>;
 }

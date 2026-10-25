@@ -1,4 +1,4 @@
-import { Column, DeleteDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, DeleteDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, type Relation } from "typeorm";
 import { CategoryEntity } from "./CategoryEntity.js";
 import { SpendEntity } from "./SpendEntity.js";
 
@@ -19,8 +19,8 @@ export class SubcategoryEntity {
 
     @ManyToOne(() => CategoryEntity, (category) => category.subcategories, { nullable: false, onDelete: "CASCADE" })
     @JoinColumn({ name: "categoryId" })
-    category: CategoryEntity;
+    category: Relation<CategoryEntity>;
 
     @OneToMany(() => SpendEntity, (spend) => spend.subcategory)
-    spends: SpendEntity[];
+    spends: Relation<SpendEntity[]>;
 }

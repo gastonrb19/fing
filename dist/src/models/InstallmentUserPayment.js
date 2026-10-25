@@ -48,17 +48,17 @@ __decorate([
 __decorate([
     ManyToOne(() => PlannedInstallmentEntity, (pi) => pi.fk_installmentUserPayment, { onDelete: "CASCADE", nullable: false }),
     JoinColumn({ name: "plannedInstallmentId" }),
-    __metadata("design:type", PlannedInstallmentEntity)
+    __metadata("design:type", Object)
 ], InstallmentUserPayment.prototype, "plannedInstallment", void 0);
 __decorate([
     ManyToOne(() => User, (user) => user.installmentUserPayments),
     JoinColumn({ name: "userId" }),
-    __metadata("design:type", User)
+    __metadata("design:type", Object)
 ], InstallmentUserPayment.prototype, "user", void 0);
 __decorate([
     ManyToOne(() => User, { nullable: true }),
     JoinColumn({ name: "assumedByUserId" }),
-    __metadata("design:type", User)
+    __metadata("design:type", Object)
 ], InstallmentUserPayment.prototype, "assumedByUser", void 0);
 InstallmentUserPayment = __decorate([
     Entity({ name: 'INSTALLMENTUSERPAYMENT' })

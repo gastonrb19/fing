@@ -37,11 +37,11 @@ __decorate([
 __decorate([
     ManyToOne(() => CategoryEntity, (category) => category.subcategories, { nullable: false, onDelete: "CASCADE" }),
     JoinColumn({ name: "categoryId" }),
-    __metadata("design:type", CategoryEntity)
+    __metadata("design:type", Object)
 ], SubcategoryEntity.prototype, "category", void 0);
 __decorate([
     OneToMany(() => SpendEntity, (spend) => spend.subcategory),
-    __metadata("design:type", Array)
+    __metadata("design:type", Object)
 ], SubcategoryEntity.prototype, "spends", void 0);
 SubcategoryEntity = __decorate([
     Entity({ name: 'SUBCATEGORY' })

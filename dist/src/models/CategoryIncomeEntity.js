@@ -34,7 +34,7 @@ __decorate([
 ], CategoryIncomeEntity.prototype, "deletedAt", void 0);
 __decorate([
     OneToMany(() => IncomeEntity, (income) => income.categoryIncome),
-    __metadata("design:type", Array)
+    __metadata("design:type", Object)
 ], CategoryIncomeEntity.prototype, "incomes", void 0);
 CategoryIncomeEntity = __decorate([
     Entity({ name: "CATEGORY_INCOME" })

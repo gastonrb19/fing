@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, type Relation } from "typeorm";
 import { User } from "./UserEntity.js";
 
 export enum FriendRequestStatus {
@@ -23,11 +23,11 @@ export class FriendRequestEntity {
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'senderId' })
-    sender: User;
+    sender: Relation<User>;
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'receiverId' })
-    receiver: User;
+    receiver: Relation<User>;
 
     @CreateDateColumn({ type: 'timestamp' })
     createdAt: Date;

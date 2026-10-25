@@ -1,4 +1,4 @@
-import { Column, DeleteDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, DeleteDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, type Relation } from "typeorm";
 import { SubcategoryEntity } from "./SubcategoryEntity.js";
 
 
@@ -17,5 +17,5 @@ export class CategoryEntity {
     deletedAt?: Date;
 
     @OneToMany(() => SubcategoryEntity, (subcategory) => subcategory.category)
-    subcategories: SubcategoryEntity[];
+    subcategories: Relation<SubcategoryEntity[]>;
 }

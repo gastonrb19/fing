@@ -41,11 +41,11 @@ __decorate([
 __decorate([
     ManyToOne(() => SpendEntity, (spend) => spend.plannedInstallments, { nullable: false, onDelete: "CASCADE" }),
     JoinColumn({ name: "spendId" }),
-    __metadata("design:type", SpendEntity)
+    __metadata("design:type", Object)
 ], PlannedInstallmentEntity.prototype, "piId", void 0);
 __decorate([
     OneToMany(() => InstallmentUserPayment, (iup) => iup.plannedInstallment),
-    __metadata("design:type", Array)
+    __metadata("design:type", Object)
 ], PlannedInstallmentEntity.prototype, "fk_installmentUserPayment", void 0);
 PlannedInstallmentEntity = __decorate([
     Entity({ name: 'PLANNEDINSTALLMENT' })

@@ -43,15 +43,15 @@ __decorate([
 ], User.prototype, "phone", void 0);
 __decorate([
     OneToMany(() => SpendEntity, (spend) => spend.user),
-    __metadata("design:type", Array)
+    __metadata("design:type", Object)
 ], User.prototype, "spends", void 0);
 __decorate([
     OneToMany(() => InstallmentUserPayment, (iup) => iup.user),
-    __metadata("design:type", Array)
+    __metadata("design:type", Object)
 ], User.prototype, "installmentUserPayments", void 0);
 __decorate([
     OneToMany(() => IncomeEntity, (income) => income.user),
-    __metadata("design:type", Array)
+    __metadata("design:type", Object)
 ], User.prototype, "incomes", void 0);
 User = __decorate([
     Entity({ name: 'USERS' })

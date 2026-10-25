@@ -57,7 +57,7 @@ __decorate([
 __decorate([
     ManyToOne(() => User, (user) => user.incomes, { nullable: false, onDelete: "CASCADE" }),
     JoinColumn({ name: "userId" }),
-    __metadata("design:type", User)
+    __metadata("design:type", Object)
 ], IncomeEntity.prototype, "user", void 0);
 __decorate([
     ManyToOne(() => CategoryIncomeEntity, (categoryIncome) => categoryIncome.incomes, {
@@ -65,7 +65,7 @@ __decorate([
         onDelete: "CASCADE",
     }),
     JoinColumn({ name: "categoryIncomeId" }),
-    __metadata("design:type", CategoryIncomeEntity)
+    __metadata("design:type", Object)
 ], IncomeEntity.prototype, "categoryIncome", void 0);
 IncomeEntity = __decorate([
     Entity({ name: "INCOME" })

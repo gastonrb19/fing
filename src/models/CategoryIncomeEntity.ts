@@ -1,4 +1,4 @@
-import { Column, DeleteDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, DeleteDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, type Relation } from "typeorm";
 import { IncomeEntity } from "./IncomeEntity.js";
 
 @Entity({ name: "CATEGORY_INCOME" })
@@ -16,5 +16,5 @@ export class CategoryIncomeEntity {
     deletedAt?: Date;
 
     @OneToMany(() => IncomeEntity, (income) => income.categoryIncome)
-    incomes: IncomeEntity[];
+    incomes: Relation<IncomeEntity[]>;
 }

@@ -34,7 +34,7 @@ __decorate([
 ], CategoryEntity.prototype, "deletedAt", void 0);
 __decorate([
     OneToMany(() => SubcategoryEntity, (subcategory) => subcategory.category),
-    __metadata("design:type", Array)
+    __metadata("design:type", Object)
 ], CategoryEntity.prototype, "subcategories", void 0);
 CategoryEntity = __decorate([
     Entity({ name: 'CATEGORY' })

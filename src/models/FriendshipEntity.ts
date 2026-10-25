@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, type Relation } from "typeorm";
 import { User } from "./UserEntity.js";
 
 @Entity({ name: 'FRIENDSHIP' })
@@ -14,11 +14,11 @@ export class FriendshipEntity {
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'userId' })
-    user: User;
+    user: Relation<User>;
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'friendId' })
-    friend: User;
+    friend: Relation<User>;
 
     @CreateDateColumn({ type: 'timestamp' })
     createdAt: Date;

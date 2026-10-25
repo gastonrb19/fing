@@ -66,21 +66,21 @@ __decorate([
 __decorate([
     ManyToOne(() => User, (user) => user.spends, { nullable: false, onDelete: "CASCADE" }),
     JoinColumn({ name: "userId" }),
-    __metadata("design:type", User)
+    __metadata("design:type", Object)
 ], SpendEntity.prototype, "user", void 0);
 __decorate([
     ManyToOne(() => SubcategoryEntity, (subcategory) => subcategory.spends, { nullable: false, onDelete: "CASCADE" }),
     JoinColumn({ name: "subcategoryId" }),
-    __metadata("design:type", SubcategoryEntity)
+    __metadata("design:type", Object)
 ], SpendEntity.prototype, "subcategory", void 0);
 __decorate([
     ManyToOne(() => TypeSpendEntity, (typeSpend) => typeSpend.spends, { nullable: false, onDelete: "CASCADE" }),
     JoinColumn({ name: "fkTypeSpend" }),
-    __metadata("design:type", TypeSpendEntity)
+    __metadata("design:type", Object)
 ], SpendEntity.prototype, "type", void 0);
 __decorate([
     OneToMany(() => PlannedInstallmentEntity, (pi) => pi.piId),
-    __metadata("design:type", Array)
+    __metadata("design:type", Object)
 ], SpendEntity.prototype, "plannedInstallments", void 0);
 SpendEntity = __decorate([
     Entity({ name: 'SPEND' })

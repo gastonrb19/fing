@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn, type Relation } from "typeorm";
 import { SpendEntity } from "./SpendEntity.js";
 
 
@@ -11,6 +11,6 @@ export class TypeSpendEntity {
     name: string;
 
     @OneToMany(() => SpendEntity, (spend) => spend.type)
-    spends: SpendEntity[];
+    spends: Relation<SpendEntity[]>;
     
 }

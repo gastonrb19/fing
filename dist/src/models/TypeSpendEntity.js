@@ -24,7 +24,7 @@ __decorate([
 ], TypeSpendEntity.prototype, "name", void 0);
 __decorate([
     OneToMany(() => SpendEntity, (spend) => spend.type),
-    __metadata("design:type", Array)
+    __metadata("design:type", Object)
 ], TypeSpendEntity.prototype, "spends", void 0);
 TypeSpendEntity = __decorate([
     Entity({ name: 'TYPESPEND' })

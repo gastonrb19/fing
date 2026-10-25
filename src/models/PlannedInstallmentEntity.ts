@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, type Relation } from "typeorm";
 import { SpendEntity } from "./SpendEntity.js";
 import { InstallmentUserPayment } from "./InstallmentUserPayment.js";
 
@@ -22,8 +22,8 @@ export class PlannedInstallmentEntity {
 
     @ManyToOne(() => SpendEntity, (spend) => spend.plannedInstallments, {nullable: false, onDelete: "CASCADE"})
     @JoinColumn({ name: "spendId" })
-    piId: SpendEntity;
+    piId: Relation<SpendEntity>;
 
     @OneToMany(() => InstallmentUserPayment, (iup) => iup.plannedInstallment)
-    fk_installmentUserPayment: InstallmentUserPayment[];
+    fk_installmentUserPayment: Relation<InstallmentUserPayment[]>;
 }

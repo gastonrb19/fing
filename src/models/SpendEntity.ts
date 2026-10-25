@@ -7,6 +7,7 @@ import {
     OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
+    type Relation,
 } from "typeorm";
 import { User } from "./UserEntity.js";
 import { SubcategoryEntity } from "./SubcategoryEntity.js";
@@ -45,16 +46,16 @@ export class SpendEntity {
 
     @ManyToOne(() => User, (user) => user.spends, { nullable: false, onDelete: "CASCADE" })
     @JoinColumn({ name: "userId" })
-    user: User;
+    user: Relation<User>;
 
     @ManyToOne(() => SubcategoryEntity, (subcategory) => subcategory.spends, { nullable: false, onDelete: "CASCADE" })
     @JoinColumn({ name: "subcategoryId" })
-    subcategory: SubcategoryEntity;
+    subcategory: Relation<SubcategoryEntity>;
 
     @ManyToOne(() => TypeSpendEntity, (typeSpend) => typeSpend.spends, {nullable: false, onDelete: "CASCADE"})
     @JoinColumn({name : "fkTypeSpend"})
-    type: TypeSpendEntity;
+    type: Relation<TypeSpendEntity>;
 
     @OneToMany(() => PlannedInstallmentEntity, (pi) => pi.piId)
-    plannedInstallments: PlannedInstallmentEntity[];
+    plannedInstallments: Relation<PlannedInstallmentEntity[]>;
 }

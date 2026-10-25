@@ -32,12 +32,12 @@ __decorate([
 __decorate([
     ManyToOne(() => User, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'userId' }),
-    __metadata("design:type", User)
+    __metadata("design:type", Object)
 ], FriendshipEntity.prototype, "user", void 0);
 __decorate([
     ManyToOne(() => User, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'friendId' }),
-    __metadata("design:type", User)
+    __metadata("design:type", Object)
 ], FriendshipEntity.prototype, "friend", void 0);
 __decorate([
     CreateDateColumn({ type: 'timestamp' }),
