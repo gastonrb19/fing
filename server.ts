@@ -47,16 +47,26 @@ app.use((_req, res, next) => {
 });
 
 // Configuración de CORS dinámica para permitir cookies y credenciales desde orígenes autorizados
+const isSameOrigin = (origin: string, host?: string) => {
+  if (!host) return false;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+};
+
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Permitir peticiones same-origin / server-to-server (ej. proxy Nginx o healthchecks sin header Origin)
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+  cors((req, callback) => {
+    const origin = req.headers.origin;
+    const host = (req.headers['x-forwarded-host'] as string) || req.headers.host;
+    // Permitir: sin Origin (healthchecks), orígenes declarados en CORS_ORIGIN
+    // o same-origin vía proxy Nginx (/api) sin importar el dominio (IP, DuckDNS, etc.)
+    const allowed = !origin || allowedOrigins.includes(origin) || isSameOrigin(origin, host);
+    if (!allowed) {
       return callback(new Error('Origen no permitido por CORS'));
-    },
-    credentials: true,
+    }
+    return callback(null, { origin: true, credentials: true });
   })
 );
 
