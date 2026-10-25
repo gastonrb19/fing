@@ -5,16 +5,17 @@
   "license": "ISC",
   "author": "",
   "type": "module",
-  "main": "server.ts",
+  "main": "dist/server.js",
   "scripts": {
-    "start": "npx tsx server.ts",
+    "start": "node dist/server.js",
+    "start:dev": "npx tsx server.ts",
     "dev": "npx tsx watch server.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "npx tsx --test tests/*.test.ts",
     "test:db": "npx tsx scripts/test-db-connection.ts",
     "seed": "npx tsx scripts/seed.ts",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

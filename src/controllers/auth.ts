@@ -14,11 +14,18 @@ export class AuthController {
 
     const { user, token } = await authService.login(identifier, password);
 
-    // Inyectar cookie HTTP-Only segura
+    const isHttps =
+      req.secure ||
+      req.headers["x-forwarded-proto"] === "https" ||
+      process.env.COOKIE_SECURE === "true";
+    const sameSite =
+      (process.env.COOKIE_SAMESITE as "lax" | "none" | "strict") || "lax";
+
+    // Inyectar cookie HTTP-Only segura (adaptativa a HTTP en EC2 directo o HTTPS detrás de proxy/CloudFront)
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // true en HTTPS de producción
-      sameSite: "lax",
+      secure: isHttps,
+      sameSite,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
       path: "/",
     });
@@ -49,7 +56,20 @@ export class AuthController {
   });
 
   logout = dryFn(async (req: AuthenticatedRequest, res: Response) => {
-    res.clearCookie("token", { path: "/" });
+    const isHttps =
+      req.secure ||
+      req.headers["x-forwarded-proto"] === "https" ||
+      process.env.COOKIE_SECURE === "true";
+    const sameSite =
+      (process.env.COOKIE_SAMESITE as "lax" | "none" | "strict") || "lax";
+
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: isHttps,
+      sameSite,
+      path: "/",
+    });
+    res.setHeader("Clear-Site-Data", '"cookies", "storage"');
     res.status(200).json({
       success: true,
       message: "Sesión cerrada correctamente",

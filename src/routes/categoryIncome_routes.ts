@@ -6,6 +6,7 @@ import {
     createCategoryIncomeSchema,
     updateCategoryIncomeSchema,
 } from "../schemas/categoryIncome.schema.js";
+import { requireAuth } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 const categoryIncomeController = new CategoryIncomeController(
@@ -14,19 +15,21 @@ const categoryIncomeController = new CategoryIncomeController(
 
 router
     .route("/category-incomes")
-    .get(categoryIncomeController.findAll)
+    .get(requireAuth, categoryIncomeController.findAll)
     .post(
+        requireAuth,
         validateBody(createCategoryIncomeSchema),
         categoryIncomeController.create
     );
 
 router
     .route("/category-incomes/:id")
-    .get(categoryIncomeController.findOne)
+    .get(requireAuth, categoryIncomeController.findOne)
     .put(
+        requireAuth,
         validateBody(updateCategoryIncomeSchema),
         categoryIncomeController.update
     )
-    .delete(categoryIncomeController.delete);
+    .delete(requireAuth, categoryIncomeController.delete);
 
 export default router;

@@ -4,16 +4,17 @@ import { SubcategoryService } from "../services/subcategory.js";
 import { CategoryService } from "../services/category.js";
 import { validateBody } from "../middlewares/validation.js";
 import { createSubcategorySchema, updateSubcategorySchema } from "../schemas/subcategory.schema.js";
+import { requireAuth } from "../middlewares/auth.middleware.js";
 const router = Router();
 const subcategoryController = new SubcategoryController(new SubcategoryService(new CategoryService()));
 router.route("/categories/:categoryId/subcategories")
-    .get(subcategoryController.findByCategory);
+    .get(requireAuth, subcategoryController.findByCategory);
 router.route("/subcategories")
-    .get(subcategoryController.findAll)
-    .post(validateBody(createSubcategorySchema), subcategoryController.create);
+    .get(requireAuth, subcategoryController.findAll)
+    .post(requireAuth, validateBody(createSubcategorySchema), subcategoryController.create);
 router.route("/subcategories/:id")
-    .get(subcategoryController.findOne)
-    .put(validateBody(updateSubcategorySchema), subcategoryController.update)
-    .delete(subcategoryController.delete);
+    .get(requireAuth, subcategoryController.findOne)
+    .put(requireAuth, validateBody(updateSubcategorySchema), subcategoryController.update)
+    .delete(requireAuth, subcategoryController.delete);
 export default router;
 //# sourceMappingURL=subcategory_routes.js.map

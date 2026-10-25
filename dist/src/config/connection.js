@@ -23,6 +23,7 @@ export const testConnection = async () => {
     }
     catch (error) {
         console.error("Error during db init:", error);
+        process.exit(1);
     }
 };
 //# sourceMappingURL=connection.js.map

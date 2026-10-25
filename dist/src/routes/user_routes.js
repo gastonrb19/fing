@@ -3,13 +3,14 @@ import { UserController } from "../controllers/user.js";
 import { UserService } from "../services/user.js";
 import { validateBody } from "../middlewares/validation.js";
 import { createUserSchema, updateUserSchema } from "../schemas/user.schema.js";
+import { requireAuth } from "../middlewares/auth.middleware.js";
 const router = Router();
 const userController = new UserController(new UserService());
 router.route("/users")
-    .get(userController.findAll)
-    .post(validateBody(createUserSchema), userController.create);
+    .get(requireAuth, userController.findAll)
+    .post(requireAuth, validateBody(createUserSchema), userController.create);
 router.route("/users/:id")
-    .get(userController.findOne)
-    .put(validateBody(updateUserSchema), userController.update);
+    .get(requireAuth, userController.findOne)
+    .put(requireAuth, validateBody(updateUserSchema), userController.update);
 export default router;
 //# sourceMappingURL=user_routes.js.map

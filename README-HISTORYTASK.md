@@ -14,3 +14,9 @@
 - [x] **Script de Seeder de Datos Iniciales (`npm run seed`):** Crear script idempotente para poblar en la base de datos de Supabase los datos necesarios para operar: (Fecha: 2026-10-24)
 - [x] **Conexión a PostgreSQL Gratuito en SUPABASE:** (Fecha: 2026-10-24)
 - [x] **Automatización de Migraciones:** Configurar script/entrypoint para ejecutar migraciones pendientes de TypeORM antes de inicializar el servidor. (100%) (Fecha: 2026-10-24)
+
+- [x] **Soft Delete en Catálogos:** Implementar eliminación lógica (`@DeleteDateColumn` y `softRemove`) en `CategoryEntity` y `SubcategoryEntity` preservando el historial de gastos con `.withDeleted()`. (100%) (Fecha: 2026-10-25)
+- [x] **Módulo Completo de Ingresos (`CATEGORY_INCOME` e `INCOME`):** Crear entidades, migraciones, esquemas Zod, servicios, controladores, rutas CRUD y pruebas unitarias asociando ingresos `1:N` a `USERS`. (100%) (Fecha: 2026-10-25)
+- [x] **Pago Inmediato Opcional (`isPaid`):** Permitir marcar un gasto como pagado desde su creación cuando únicamente el usuario creador está implicado. (100%) (Fecha: 2026-10-25)
+- [x] **Dockerfile Multi-Stage para Producción:** Crear `Dockerfile` optimizado (`node:22-slim` `builder` + `runner`), excluyendo `devDependencies`, con usuario `node` no-root y `HEALTHCHECK` integrado. (100%) (Fecha: 2026-10-25)
+- [x] **Endpoint de Health Check (`GET /health`) y Hardening Productivo:** Configurar `/health`, cabeceras HTTP seguras, CORS dinámico desde `CORS_ORIGIN`, cookies adaptativas, ocultamiento de `hashedPassword` (`select: false`), eliminación de clave maestra de desarrollo y validación de autorización (`requireAuth` + pertenencia por `req.user.id`). (100%) (Fecha: 2026-10-25)

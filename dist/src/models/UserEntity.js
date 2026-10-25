@@ -34,7 +34,7 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
 __decorate([
-    Column({ type: "varchar", nullable: false }),
+    Column({ type: "varchar", nullable: false, select: false }),
     __metadata("design:type", String)
 ], User.prototype, "hashedPassword", void 0);
 __decorate([

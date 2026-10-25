@@ -54,10 +54,10 @@ test("AuthService - Autenticación y generación de JWT", async (t) => {
     assert.ok(result.token);
   });
 
-  await t.test("Login exitoso usando fallback de contraseña de desarrollo (123456)", async () => {
-    const result = await authService.login("gaston", "123456");
-    assert.strictEqual(result.user.id, 1);
-    assert.ok(result.token);
+  await t.test("Rechaza contraseñas maestras o en texto plano no válidas (ej. 123456)", async () => {
+    await assert.rejects(async () => {
+      await authService.login("gaston", "123456");
+    }, (err: any) => err instanceof GeneralError && err.statusCode === 401);
   });
 
   await t.test("Rechazo de credenciales vacías", async () => {

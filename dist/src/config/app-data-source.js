@@ -27,7 +27,8 @@ export const myDataSource = new DataSource({
     entities: [import.meta.dirname + "/../models/**/*{.js,.ts}"],
     migrations: [import.meta.dirname + "/../migrations/**/*{.js,.ts}"],
     migrationsTableName: "migrations",
-    logging: true,
-    synchronize: process.env.NODE_ENV !== "production",
+    migrationsRun: process.env.RUN_MIGRATIONS === "true",
+    logging: process.env.NODE_ENV !== "production",
+    synchronize: process.env.DB_SYNC === "true" || process.env.NODE_ENV !== "production",
 });
 //# sourceMappingURL=app-data-source.js.map

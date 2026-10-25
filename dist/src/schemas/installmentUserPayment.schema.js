@@ -1,5 +1,6 @@
 import { z } from "zod";
 export const createInstallmentUserPaymentSchema = z.object({
+    currentUser: z.number().int().positive().optional(),
     idPayment: z.string().uuid().optional(),
     accepted: z.boolean(),
     paidAmount: z.number().nonnegative(),
@@ -8,6 +9,7 @@ export const createInstallmentUserPaymentSchema = z.object({
     userId: z.number().int().positive()
 });
 export const updateInstallmentUserPaymentSchema = z.object({
+    currentUser: z.number().int().positive().optional(),
     installmentUserPayment: z.object({
         accepted: z.boolean().optional(),
         paidAmount: z.number().nonnegative().optional(),

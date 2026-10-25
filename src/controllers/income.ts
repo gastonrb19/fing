@@ -1,8 +1,9 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import { IncomeService } from "../services/income.js";
 import { dryFn } from "../utils/dryFn.js";
 import { checkAndConvertPagination } from "../utils/checkPagination.js";
 import { GeneralError } from "../utils/classError.js";
+import { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
 
 export class IncomeController {
     private readonly serviceIncome: IncomeService;
@@ -11,13 +12,15 @@ export class IncomeController {
         this.serviceIncome = serviceIncome;
     }
 
-    findAll = dryFn(async (req: Request, res: Response, next: NextFunction) => {
+    findAll = dryFn(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         const { limit, offset } = checkAndConvertPagination({
             limit: req.query.limit as string | undefined,
             offset: req.query.offset as string | undefined,
         });
 
-        const incomes = await this.serviceIncome.findAll({ limit, offset });
+        const incomes = req.user?.id
+            ? await this.serviceIncome.findByUser(req.user.id, { limit, offset })
+            : await this.serviceIncome.findAll({ limit, offset });
 
         res.status(200).json({
             success: true,
@@ -28,13 +31,16 @@ export class IncomeController {
     });
 
     findByUser = dryFn(
-        async (req: Request, res: Response, next: NextFunction) => {
+        async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
             const { limit, offset } = checkAndConvertPagination({
                 limit: req.query.limit as string | undefined,
                 offset: req.query.offset as string | undefined,
             });
 
             const userId = Number(req.params.id_user);
+            if (req.user?.id && req.user.id !== userId) {
+                throw new GeneralError("No tienes permiso para consultar los ingresos de otro usuario.", 403);
+            }
 
             const filters: {
                 categoryIncomeId?: number;
@@ -71,7 +77,10 @@ export class IncomeController {
         }
     );
 
-    create = dryFn(async (req: Request, res: Response, next: NextFunction) => {
+    create = dryFn(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        if (req.user?.id && Number(req.body.userId) !== req.user.id) {
+            throw new GeneralError("No puedes registrar ingresos a nombre de otro usuario.", 403);
+        }
         const newIncome = await this.serviceIncome.create(req.body);
         res.status(201).json({
             success: true,
@@ -81,10 +90,13 @@ export class IncomeController {
         });
     });
 
-    findOne = dryFn(async (req: Request, res: Response, next: NextFunction) => {
+    findOne = dryFn(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         const income = await this.serviceIncome.findOneById(
             Number(req.params.id)
         );
+        if (req.user?.id && income.user?.id !== req.user.id) {
+            throw new GeneralError("No tienes permiso para visualizar este ingreso.", 403);
+        }
         res.status(200).json({
             success: true,
             code_message: "ABC",
@@ -93,12 +105,20 @@ export class IncomeController {
         });
     });
 
-    update = dryFn(async (req: Request, res: Response, next: NextFunction) => {
+    update = dryFn(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         if (!req.body.income) {
             throw new GeneralError("Bad request, income not provided.", 400);
         }
+        const id = Number(req.params.id);
+        const existing = await this.serviceIncome.findOneById(id);
+        if (req.user?.id && existing.user?.id !== req.user.id) {
+            throw new GeneralError("No tienes permiso para editar este ingreso.", 403);
+        }
+        if (req.user?.id && req.body.income.userId && Number(req.body.income.userId) !== req.user.id) {
+            throw new GeneralError("No puedes reasignar un ingreso a otro usuario.", 403);
+        }
         const updatedIncome = await this.serviceIncome.update(
-            Number(req.params.id),
+            id,
             req.body.income
         );
         res.status(200).json({
@@ -109,8 +129,13 @@ export class IncomeController {
         });
     });
 
-    delete = dryFn(async (req: Request, res: Response, next: NextFunction) => {
-        await this.serviceIncome.delete(Number(req.params.id));
+    delete = dryFn(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        const id = Number(req.params.id);
+        const existing = await this.serviceIncome.findOneById(id);
+        if (req.user?.id && existing.user?.id !== req.user.id) {
+            throw new GeneralError("No tienes permiso para eliminar este ingreso.", 403);
+        }
+        await this.serviceIncome.delete(id);
         res.status(200).json({
             success: true,
             code_message: "ABC",

@@ -3,16 +3,17 @@ import { PlannedInstallmentController } from "../controllers/plannedInstallment.
 import { PlannedInstallmentService } from "../services/plannedInstallment.js";
 import { validateBody } from "../middlewares/validation.js";
 import { createPlannedInstallmentSchema, updatePlannedInstallmentSchema } from "../schemas/plannedInstallment.schema.js";
+import { requireAuth } from "../middlewares/auth.middleware.js";
 const router = Router();
 const controller = new PlannedInstallmentController(new PlannedInstallmentService());
 router.route("/plannedinstallments")
-    .get(controller.findAll)
-    .post(validateBody(createPlannedInstallmentSchema), controller.create);
+    .get(requireAuth, controller.findAll)
+    .post(requireAuth, validateBody(createPlannedInstallmentSchema), controller.create);
 router.route("/plannedinstallments/:idPI")
-    .get(controller.findOne)
-    .put(validateBody(updatePlannedInstallmentSchema), controller.update)
-    .delete(controller.delete);
+    .get(requireAuth, controller.findOne)
+    .put(requireAuth, validateBody(updatePlannedInstallmentSchema), controller.update)
+    .delete(requireAuth, controller.delete);
 router.route("/spends/:spendId/plannedinstallments")
-    .get(controller.findBySpend);
+    .get(requireAuth, controller.findBySpend);
 export default router;
 //# sourceMappingURL=plannedInstallment_routes.js.map

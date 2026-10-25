@@ -1,25 +1,11 @@
 # 📌 Tareas Backend (TODO)
 
-### 🌱 Datos Iniciales y Seeding (Supabase)
-  - Tipos de gasto (`TYPESPEND`): Fijo, Variable, Cuotas / Ingreso, Gasto.
-  - Categorías y Subcategorías base (`CATEGORY` y `SUBCATEGORY`): Alimentación (Supermercado, Salidas), Vivienda (Alquiler, Cuentas/Servicios), Transporte (Combustible, Transporte público), Salud, Ocio.
-  - Usuario inicial administrador/personal y amigos de prueba (`USERS` y `FRIENDSHIP`) para pruebas de gastos compartidos con contraseñas hasheadas en `bcrypt`.
+### ☁️ Despliegue en AWS EC2 (Docker Compose + Elastic IP + Supabase)
+- [ ] **Subir Cambios de Producción a GitHub (`fing` y `FingApp`):** Hacer commit y push del hardening de seguridad, módulo de Ingresos, `Dockerfile` y `docker-compose.prod.yml` antes de clonar en la instancia EC2.
+- [ ] **Aprovisionar Instancia AWS EC2 + Elastic IP (Free Tier):** Lanzar instancia Ubuntu 24.04 (`t3.micro`/`t2.micro` en `us-east-1`), asociar 1 Elastic IP gratuita (cubierta por las 750 h/mes con la instancia encendida), configurar 1.5 GB de Swap e instalar Docker abriendo solo puertos `22` (Mi IP) y `80` (`0.0.0.0/0`).
+- [ ] **Configurar `.env.prod` con Session Pooler IPv4 de Supabase:** Crear `FingApp/.env.prod` en la EC2 apuntando a `aws-0-us-east-1.pooler.supabase.com:5432` (`postgres.<ref>`, `DB_SSL=true`), generar `JWT_SECRET` fuerte (`openssl rand -hex 32`) y definir `CORS_ORIGIN` con la Elastic IP.
+- [ ] **Levantar Contenedor Backend y Validar Salud (`GET /api/health`):** Ejecutar `docker compose -f docker-compose.prod.yml up -d --build` en la EC2 y verificar respuesta `200 OK` junto con conectividad activa hacia Supabase.
 
-### ☁️ Despliegue Económico en AWS (AWS App Runner & Supabase PostgreSQL)
-- [ ] **Dockerfile Multi-Stage para Producción:** Crear `Dockerfile` optimizado (Node.js Alpine/Slim) multi-stage (`builder` + `runner`), excluyendo devDependencies, configurando usuario `node` no-root y puerto configurable por variable `PORT` (por defecto 8000).
-- [ ] **Endpoint de Health Check (`GET /health`):** Crear endpoint de salud ligero para la verificación automática nativa de AWS App Runner, validando estado del proceso y conectividad activa con PostgreSQL (`myDataSource.isInitialized`).
-  - Crear proyecto en Supabase (Tier Gratuito) y obtener credenciales de conexión (`Transaction Pooler` puerto 6543 o conexión directa 5432).
-  - Parametrizar `app-data-source.ts` con variables de entorno (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`).
-  - Habilitar soporte SSL obligatorio para Supabase (`ssl: { rejectUnauthorized: false }`).
-  - Desactivar `synchronize: true` en producción (`NODE_ENV === 'production'`) para prevenir alteraciones destructivas del esquema.
-- [ ] **Configuración del Servicio en AWS App Runner (Cero Costo de ALB):**
-  - Configurar servicio en AWS App Runner conectado al repositorio GitHub o imagen en Amazon ECR.
-  - Asignar capacidad mínima para ahorro de costos (0.25 vCPU y 0.5 GB RAM).
-  - Obtener URL pública con HTTPS y certificado SSL automático gestionado por AWS (ej. `https://xxxx.us-east-1.awsapprunner.com`) **sin pagar Application Load Balancer**.
-  - Inyectar variables de entorno seguras (`DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`, `JWT_SECRET`, `NODE_ENV=production`, `PORT=8000`, `CORS_ORIGIN`).
-- [ ] **Estrategia CORS y Cookies de Sesión en Producción:**
-  - Configurar `cors` en `server.ts` con `origin: process.env.CORS_ORIGIN` y `credentials: true`.
-  - Asegurar flags de cookies HTTP-Only de sesión (`secure: true`, `sameSite: 'none'`).
-
-### 📦 DevOps Local
-- [ ] Levantar base de datos Dockerizada (docker-compose) para correr y validar localmente el entorno SQL con las migraciones actualizadas.
+### 🌱 Cuentas Reales y Datos Iniciales (Supabase)
+- [ ] **Verificar las 2 Cuentas de Usuario Reales y Amistad:** Confirmar en Supabase las cuentas definitivas de ambos usuarios con contraseñas hasheadas en `bcrypt` y su vínculo activo en `FRIENDSHIP` (ya que `POST /users` quedó cerrado con `requireAuth`).
+- [ ] **Verificar Catálogos Base en Producción:** Confirmar las categorías iniciales de gastos (`CATEGORY`, `SUBCATEGORY`) e ingresos (`CATEGORY_INCOME`) para empezar a registrar movimientos reales.

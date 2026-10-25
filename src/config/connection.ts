@@ -24,6 +24,7 @@ export const testConnection = async() => {
 		}
 		console.log("Default TypeSpends verification complete.");
 	}catch(error){
-		console.error("Error during db init:", error)
+		console.error("Error during db init:", error);
+		process.exit(1);
 	}	
 }

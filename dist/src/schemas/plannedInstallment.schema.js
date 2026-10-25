@@ -1,5 +1,6 @@
 import { z } from "zod";
 export const createPlannedInstallmentSchema = z.object({
+    currentUser: z.number().int().positive().optional(),
     idPI: z.string().min(1),
     amount: z.number().positive(),
     expirationDate: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
@@ -7,6 +8,7 @@ export const createPlannedInstallmentSchema = z.object({
     spendId: z.number().int().positive()
 });
 export const updatePlannedInstallmentSchema = z.object({
+    currentUser: z.number().int().positive().optional(),
     plannedInstallment: z.object({
         amount: z.number().positive().optional(),
         expirationDate: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),

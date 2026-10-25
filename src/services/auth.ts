@@ -4,6 +4,10 @@ import { myDataSource } from "../config/app-data-source.js";
 import { User } from "../models/UserEntity.js";
 import { GeneralError } from "../utils/classError.js";
 
+const isProd = process.env.NODE_ENV === "production";
+if (isProd && !process.env.JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET debe estar definido en las variables de entorno en producción.");
+}
 const JWT_SECRET = process.env.JWT_SECRET || "fing_secret_key_2026_super_secure";
 
 export interface AuthUserResponse {
@@ -19,30 +23,32 @@ export class AuthService {
       throw new GeneralError("Usuario/Email y contraseña son requeridos", 400);
     }
 
-    // Buscar por username o email
+    // Buscar por username o email (incluyendo hashedPassword explícitamente porque tiene select: false)
     const userRepo = myDataSource.getRepository(User);
     const user = await userRepo.findOne({
       where: [
         { username: identifier },
         { email: identifier }
-      ]
+      ],
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        phone: true,
+        hashedPassword: true,
+      },
     });
 
     if (!user) {
       throw new GeneralError("Credenciales inválidas", 401);
     }
 
-    // Validar contraseña con bcrypt (con fallback para entorno dev/testing)
+    // Validar contraseña estrictamente con bcrypt
     let isMatch = false;
     try {
       isMatch = await bcrypt.compare(password, user.hashedPassword);
     } catch {
       isMatch = false;
-    }
-
-    // Si no coincide bcrypt, permitir contraseña de desarrollo o texto plano si fue seed manual
-    if (!isMatch && (password === "123456" || password === user.hashedPassword)) {
-      isMatch = true;
     }
 
     if (!isMatch) {
