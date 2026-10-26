@@ -4,6 +4,7 @@ import { GeneralError, NotFoundError } from "../utils/classError.js";
 export class CategoryIncomeService {
     async findAll(pagination) {
         return await myDataSource.getRepository(CategoryIncomeEntity).find({
+            order: { name: "ASC" },
             skip: pagination.offset,
             take: pagination.limit,
         });

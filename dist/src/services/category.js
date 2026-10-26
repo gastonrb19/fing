@@ -4,7 +4,11 @@ import { myDataSource } from "../config/app-data-source.js";
 import { GeneralError, NotFoundError } from "../utils/classError.js";
 export class CategoryService {
     async findAll(pagination) {
-        return await myDataSource.getRepository(CategoryEntity).find({ skip: pagination.offset, take: pagination.limit });
+        return await myDataSource.getRepository(CategoryEntity).find({
+            order: { name: "ASC" },
+            skip: pagination.offset,
+            take: pagination.limit,
+        });
     }
     async findOneById(id) {
         const getCatgory = await myDataSource.getRepository(CategoryEntity).findOneBy({ id });

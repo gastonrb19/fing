@@ -9,6 +9,7 @@ export class SubcategoryService {
     }
     async findAll(pagination) {
         return await myDataSource.getRepository(SubcategoryEntity).find({
+            order: { name: "ASC" },
             skip: pagination.offset,
             take: pagination.limit,
             relations: { category: true },
@@ -19,6 +20,7 @@ export class SubcategoryService {
         const category = await this.categoryService.findOneById(categoryId);
         return await myDataSource.getRepository(SubcategoryEntity).find({
             where: { category: { id: categoryId } },
+            order: { name: "ASC" },
             skip: pagination.offset,
             take: pagination.limit,
             relations: { category: true },

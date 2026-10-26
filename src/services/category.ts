@@ -8,7 +8,11 @@ import { updateCategoryDTO } from "../dtos/category/updateCategoryDTO.js";
 
 export class CategoryService {
     async findAll(pagination: Pagination): Promise<CategoryEntity[]> {
-        return await myDataSource.getRepository(CategoryEntity).find({skip: pagination.offset, take: pagination.limit});
+        return await myDataSource.getRepository(CategoryEntity).find({
+            order: { name: "ASC" },
+            skip: pagination.offset,
+            take: pagination.limit,
+        });
     }    
 
     async findOneById(id: number): Promise<CategoryEntity> { 
